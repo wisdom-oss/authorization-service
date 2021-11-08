@@ -12,6 +12,6 @@ class ServiceSettings(BaseSettings):
                     'Therefore you currently may only connect your authorization service to an '
                     'MariaDB or MySQL database backend',
         alias='SQLALCHEMY_DATABASE_URL',
-        env='SQL_ALCHEMY_DATABASE_URL'
+        env='SQLALCHEMY_DATABASE_URL'
     )
 
