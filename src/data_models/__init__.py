@@ -21,6 +21,11 @@ class Scope(BaseModel):
         title='Scope description'
     )
 
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
+        allow_population_by_alias = True
+
 
 class Role(BaseModel):
     id: int = Field(
@@ -41,6 +46,11 @@ class Role(BaseModel):
     scopes: Optional[List[Scope]] = Field(
         title='Scopes granted by the role'
     )
+
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
+        allow_population_by_alias = True
 
 
 class User(BaseModel):
@@ -77,3 +87,8 @@ class User(BaseModel):
         title='Scopes of the user',
         description='All scopes explicitly to the user'
     )
+
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
+        allow_population_by_alias = True
