@@ -10,14 +10,12 @@ class Scope(BaseModel):
         default=...,
         title='Internal Scope ID'
     )
-    name: str = Field(
-        default=...,
+    name: Optional[str] = Field(
         title='Name of the Scope',
         description='This name should be unique throughout the wohle system to avoid any mix-ups '
                     'with scopes granting a different access to the system'
     )
-    description: str = Field(
-        default=...,
+    description: Optional[str] = Field(
         title='Scope description'
     )
 
@@ -32,14 +30,14 @@ class Role(BaseModel):
         default=...,
         title='Internal Role ID'
     )
-    name: str = Field(
+    name: Optional[str] = Field(
         default=...,
         title='Name of the role',
         description='This name should be unique throughout the whole system to avoid mix-ups with '
                     'roles which may have different scopes',
         alias='name'
     )
-    description: str = Field(
+    description: Optional[str] = Field(
         default=...,
         title='Description of the role. This may be displayed in the frontend'
     )
@@ -60,17 +58,25 @@ class User(BaseModel):
         description='Internally used id for every account present in the system. This user id may '
                     'be used for updating users'
     )
-    first_name: str = Field(
+    first_name: Optional[str] = Field(
         default=...,
         title='First Name',
         description='The first name(s) of the user',
         alias='firstName'
     )
-    last_name: str = Field(
+    last_name: Optional[str] = Field(
         default=...,
         title='Last Name',
         description='The last name(s) of the user',
         alias='lastName'
+    )
+    username: Optional[str] = Field(
+        default=...,
+        title='Username'
+    )
+    password: Optional[str] = Field(
+        title='Password',
+        description='This should only be set if creating a new user or updating the user.'
     )
     last_login: Optional[int] = Field(
         title='Last Login (UNIX Timestamp)',
