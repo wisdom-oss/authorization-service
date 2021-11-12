@@ -85,9 +85,7 @@ def update_user(db: Session, user_id: int, **new_values) -> user.User:
     :param user_id: ID of the user which will be updated
     :param new_values: New values for the account. Available arguments are: first_name, last_name,
         username, password, scopes, roles.
-        When passing scopes or roles all scopes or roles need to be passed to the function. Not
-        only the new ones. This is due to the current implementation of the assignment of roles
-        and scopes and revoking those.
+        When passing scopes or roles all scopes or roles need to be passed to the function.
     :return: The updated user
     """
     if 'first_name' in new_values:
@@ -121,4 +119,5 @@ def update_user(db: Session, user_id: int, **new_values) -> user.User:
     if 'roles' in new_values:
         for role in new_values.get('roles'):
             assign_user_to_role(db, user_id, role.id)
+    # Return the updated user
     return db.query(user.User).filter(user.User.user_id == user_id).first()

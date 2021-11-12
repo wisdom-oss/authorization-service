@@ -15,9 +15,14 @@ def add_role(db: Session, new_role: Role) -> role.Role:
 
 
 def assign_user_to_role(db: Session, user_id: int, role_id: int) -> UserRole:
-    db.execute(delete(UserRole).where(UserRole.user_id == user_id))
-    assignment = UserRole(user_id=user_id, role_id=role_id)
-    db.add(assignment)
-    db.commit()
-    db.refresh(assignment)
-    return assignment
+    _db_assignment = db.query(UserRole).filter(
+        UserRole.user_id == user_id,
+        UserRole.role_id == role_id
+    ).first()
+    if _db_assignment is None:
+        assignment = UserRole(user_id=user_id, role_id=role_id)
+        db.add(assignment)
+        db.commit()
+        db.refresh(assignment)
+        return assignment
+    return _db_assignment
