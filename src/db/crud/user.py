@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from sqlalchemy import update
+from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
 from .role import assign_user_to_role
@@ -9,6 +9,7 @@ from passlib.hash import bcrypt_sha256
 from db.crud.scope import assign_user_to_scope
 
 import data_models
+from ..objects.user import UserRole, UserScope
 
 
 def get_user_by_id(db: Session, user_id: int) -> Optional[user.User]:
@@ -114,9 +115,11 @@ def update_user(db: Session, user_id: int, **new_values) -> user.User:
             values(password=_password_hash)
         )
     if 'scopes' in new_values:
+        db.query(delete(UserScope).where(UserScope.user_id == user_id))
         for scope in new_values.get('scopes'):
             assign_user_to_scope(db, user_id, scope.id)
     if 'roles' in new_values:
+        db.query(delete(UserRole).where(UserRole.user_id == user_id))
         for role in new_values.get('roles'):
             assign_user_to_role(db, user_id, role.id)
     # Return the updated user
