@@ -98,3 +98,26 @@ class User(BaseModel):
         orm_mode = True
         allow_population_by_field_name = True
         allow_population_by_alias = True
+
+
+class Token(BaseModel):
+    access_token: str = Field(
+        default=...,
+        title='Access token'
+    )
+    token_type: str = Field(
+        default="bearer",
+        title='Token Type'
+    )
+    expires_in: Optional[int] = Field(
+        default=3600,
+        title='Lifetime of the access token'
+    )
+    refresh_token: Optional[str] = Field(
+        title='Refresh Token'
+    )
+
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
+        allow_population_by_alias = True
