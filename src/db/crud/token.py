@@ -44,5 +44,9 @@ def get_token(db: Session, token_id: int):
     pass
 
 
-def get_access_token_via_value(db: Session, token_value: str):
+def get_access_token_via_value(db: Session, token_value: str) -> Token:
     return db.query(Token).filter(Token.token == token_value).first()
+
+
+def get_refresh_token_via_value(db: Session, token_value: str) -> RefreshToken:
+    return db.query(RefreshToken).filter(RefreshToken.refresh_token == token_value).first()
