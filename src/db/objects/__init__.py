@@ -45,6 +45,7 @@ class TokenScope(TableBase):
     scope_id = Column(Integer, ForeignKey("scopes.scope_id"))
 
     token = relationship("Token", back_populates="scopes")
+    scope = relationship("Scope")
 
 
 class Token(TableBase):
