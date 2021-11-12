@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 class Scope(BaseModel):
     id: int = Field(
         default=...,
-        title='Internal Scope ID'
+        title='Internal Scope ID',
+        alias='scope_id'
     )
     name: Optional[str] = Field(
         title='Name of the Scope',
