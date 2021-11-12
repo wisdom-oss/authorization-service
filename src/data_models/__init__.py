@@ -125,3 +125,37 @@ class Token(BaseModel):
         orm_mode = True
         allow_population_by_field_name = True
         allow_population_by_alias = True
+
+
+class IntrospectionResponse(BaseModel):
+    active: bool = Field(
+        default=...,
+        description='Boolean indicator of whether or not the presented token is currently active. '
+                    'The specifics of a token\'s "active" state will vary depending on the '
+                    'implementation of the authorization server and the information it keeps about '
+                    'its tokens, but a "true" value return for the "active" property will '
+                    'generally indicate that a given token has been issued by this authorization '
+                    'server, has not been revoked by the resource owner, and is within its given '
+                    'time window of validity (e.g., after its issuance time and before its '
+                    'expiration time).'
+    )
+    scope: Optional[str] = Field(
+        title='Scopes of the token',
+        description='A JSON string containing a space-separated list of scopes associated with '
+                    'this token, in the format described in Section 3.3 of OAuth 2.0 [RFC6749].'
+    )
+    username: Optional[str] = Field(
+        description='Human-readable identifier for the resource owner who authorized this token.'
+    )
+    token_type: Optional[str] = Field(
+        description='Type of the token as defined in Section 5.1 of OAuth 2.0 [RFC6749].'
+    )
+    exp: Optional[int] = Field(
+        description='Integer timestamp, measured in the number of seconds since January 1 1970 '
+                    'UTC, indicating when this token will expire, as defined in JWT [RFC7519].'
+    )
+    iat: Optional[int] = Field(
+        description='Integer timestamp, measured in the number of seconds since January 1 1970 '
+                    'UTC, indicating when this token was originally issued, as defined in JWT ['
+                    'RFC7519].'
+    )
