@@ -39,21 +39,27 @@ async def get_user(
         db_session=Depends(get_db_session)
 ):
     if token is None or token == "undefined":
-        raise AuthorizationException("invalid_request")
+        raise AuthorizationException("invalid_request", status.HTTP_400_BAD_REQUEST)
     token_data = get_access_token_via_value(db_session, token)
+    if token_data is None:
+        raise AuthorizationException('invalid_token', status.HTTP_401_UNAUTHORIZED)
+    if not token_data.active:
+        raise AuthorizationException('invalid_token', status.HTTP_401_UNAUTHORIZED)
     user_data = get_user_by_username(db_session, token_data.user[0].user.username)
     token_scopes = get_token_scopes_as_list(db_session, token_data.token_id)
     for scope in security_scopes.scopes:
         if scope not in token_scopes:
             raise AuthorizationException(
                 "insufficient_scope",
-                needed_scope=security_scopes.scope_str
+                status.HTTP_401_UNAUTHORIZED,
+                optional_data=f"scope={security_scopes.scope_str}"
             )
     return data_models.User(
         id=user_data.user_id,
         first_name=user_data.first_name,
         last_name=user_data.last_name,
-        username=user_data.username
+        username=user_data.username,
+        scopes=get_token_scopes_as_object_list(db_session, token_data.token_id)
     )
 
 
