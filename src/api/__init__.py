@@ -1,24 +1,24 @@
 """Module describing the RESTful API Endpoints"""
 import time
-import uuid
-from typing import Optional
 
-from fastapi import Depends, FastAPI, Form, Security, Request
+from fastapi import Depends, FastAPI, Form, Request, Security
 from fastapi.responses import UJSONResponse
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict, SecurityScopes
+from fastapi.security import OAuth2PasswordBearer, SecurityScopes
+from passlib.hash import pbkdf2_sha512
 from sqlalchemy.orm import Session
 from starlette import status
-from passlib.hash import pbkdf2_sha512
-
-from db import DatabaseSession, engine
-from db.crud.scope import get_scope_list_for_user, get_scopes_as_dict, \
-    get_token_scopes_as_list, get_token_scopes_as_object_list, get_user_scopes_as_object_list
-from db.crud.token import add_token, get_access_token_via_value, get_refresh_token_via_value
-from db.crud.user import get_user_by_username
-from .dependencies import get_db_session
+from starlette.responses import Response
 
 import data_models
 import db.crud.user
+from db import DatabaseSession, engine
+from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope_list_for_user,
+                           get_scopes_as_dict, get_token_scopes_as_list,
+                           get_token_scopes_as_object_list)
+from db.crud.token import add_refreshed_token, add_token, get_access_token_via_value, \
+    get_refresh_token_via_value
+from db.crud.user import get_user_by_username
+from .dependencies import CustomizedOAuth2PasswordRequestForm, get_db_session
 from .exceptions import AuthorizationException
 
 # Initialize all database connections
