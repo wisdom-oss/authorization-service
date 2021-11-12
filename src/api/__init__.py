@@ -3,36 +3,93 @@ import time
 import uuid
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Form
+from fastapi import Depends, FastAPI, Form, Security, Request
 from fastapi.responses import UJSONResponse
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict, SecurityScopes
 from sqlalchemy.orm import Session
 from starlette import status
 from passlib.hash import pbkdf2_sha512
 
-from db import engine
-from db.crud.scope import get_scope_list_for_user
+from db import DatabaseSession, engine
+from db.crud.scope import get_scope_list_for_user, get_scopes_as_dict, \
+    get_token_scopes_as_list, get_token_scopes_as_object_list, get_user_scopes_as_object_list
 from db.crud.token import add_token, get_access_token_via_value, get_refresh_token_via_value
+from db.crud.user import get_user_by_username
 from .dependencies import get_db_session
 
 import data_models
 import db.crud.user
+from .exceptions import AuthorizationException
 
-auth_service = FastAPI(
-    docs_url=None,
-    redoc_url=None
-)
-
-
-@auth_service.on_event('startup')
-def startup_actions():
-    db.TableBase.metadata.create_all(bind=engine)
-
+# Initialize all database connections
+db.TableBase.metadata.create_all(bind=engine)
+auth_service = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl='oauth/token',
-    scheme_name='WISdoM Authorization'
+    scheme_name='WISdoM Authorization',
+    scopes=get_scopes_as_dict(DatabaseSession()),
+    auto_error=False
 )
+
+
+async def get_user(
+        security_scopes: SecurityScopes,
+        token: str = Depends(oauth2_scheme),
+        db_session=Depends(get_db_session)
+):
+    if token is None or token == "undefined":
+        raise AuthorizationException("invalid_request")
+    token_data = get_access_token_via_value(db_session, token)
+    user_data = get_user_by_username(db_session, token_data.user[0].user.username)
+    token_scopes = get_token_scopes_as_list(db_session, token_data.token_id)
+    for scope in security_scopes.scopes:
+        if scope not in token_scopes:
+            raise AuthorizationException(
+                "insufficient_scope",
+                needed_scope=security_scopes.scope_str
+            )
+    return data_models.User(
+        id=user_data.user_id,
+        first_name=user_data.first_name,
+        last_name=user_data.last_name,
+        username=user_data.username
+    )
+
+
+# ===== EXCEPTION HANDLERS =====
+@auth_service.exception_handler(AuthorizationException)
+async def authorization_exception_handler(request: Request, exc: AuthorizationException):
+    if exc.error_code == 'invalid_request':
+        return UJSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "error": exc.error_code
+            },
+            headers={
+                'WWW-Authenticate': 'Bearer'
+            }
+        )
+    if exc.error_code == 'invalid_token':
+        return UJSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={
+                "error": exc.error_code
+            },
+            headers={
+                'WWW-Authenticate': 'Bearer'
+            }
+        )
+    if exc.error_code == 'insufficient_scope':
+        return UJSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={
+                "error": exc.error_code
+            },
+            headers={
+                "WWW-Authenticate": f"Bearer scope={exc.needed_scope}"
+            }
+        )
 
 
 # ===== ROUTES =====
@@ -117,7 +174,11 @@ async def login(
 @auth_service.post(
     path='/oauth/check_token'
 )
-async def check_token(db_session: Session = Depends(get_db_session), token: str = Form(None)):
+async def check_token(
+        db_session: Session = Depends(get_db_session),
+        user: data_models.User = Security(get_user),
+        token: str = Form(...)
+):
     # Check the access_token table for a token with the value
     _token = get_access_token_via_value(db_session, token)
     if _token is not None:

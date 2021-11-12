@@ -2,6 +2,8 @@ import json
 from typing import List, Set
 
 from sqlalchemy.orm import Session
+
+import data_models
 from .role import get_roles_for_user
 from db import objects
 
@@ -45,3 +47,49 @@ def remove_user_from_scope(db: Session, scope_id: int, user_id: int):
     assignment = objects.UserScope(scope_id=scope_id, user_id=user_id)
     db.refresh(assignment)
     db.delete(assignment)
+
+
+def get_scopes_as_dict(db: Session):
+    scope_dict = {}
+    scopes = db.query(objects.Scope).all()
+    for scope in scopes:
+        scope_dict.update(
+            {
+                scope.scope_value: scope.scope_description
+            }
+        )
+    db.close()
+    return scope_dict
+
+
+def get_user_scopes_as_object_list(db: Session, user_id: int):
+    object_list = []
+    user_scope_assignments = db.query(objects.UserScope).filter(
+        objects.UserScope.user_id ==
+        user_id
+    ).all()
+    for user_scope_assignment in user_scope_assignments:
+        object_list.append(data_models.Scope.from_orm(user_scope_assignment.scope))
+    return object_list
+
+
+def get_token_scopes_as_list(db: Session, token_id: int):
+    scope_list = []
+    token_scope_assignments = db.query(objects.TokenScope).filter(
+        objects.TokenScope.token_id ==
+        token_id
+    ).all()
+    for token_scope_assignment in token_scope_assignments:
+        scope_list.append(token_scope_assignment.scope.scope_value)
+    return list(set(scope_list))
+
+
+def get_token_scopes_as_object_list(db: Session, token_id: int):
+    object_list = []
+    token_scope_assignments = db.query(objects.TokenScope).filter(
+        objects.TokenScope.token_id ==
+        token_id
+    ).all()
+    for token_scope_assignment in token_scope_assignments:
+        object_list.append(data_models.Scope.from_orm(token_scope_assignment.scope))
+    return object_list
