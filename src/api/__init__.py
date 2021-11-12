@@ -66,36 +66,15 @@ async def get_user(
 # ===== EXCEPTION HANDLERS =====
 @auth_service.exception_handler(AuthorizationException)
 async def authorization_exception_handler(request: Request, exc: AuthorizationException):
-    if exc.error_code == 'invalid_request':
-        return UJSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={
-                "error": exc.error_code
-            },
-            headers={
-                'WWW-Authenticate': 'Bearer'
-            }
-        )
-    if exc.error_code == 'invalid_token':
-        return UJSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "error": exc.error_code
-            },
-            headers={
-                'WWW-Authenticate': 'Bearer'
-            }
-        )
-    if exc.error_code == 'insufficient_scope':
-        return UJSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content={
-                "error": exc.error_code
-            },
-            headers={
-                "WWW-Authenticate": f"Bearer scope={exc.needed_scope}"
-            }
-        )
+    return UJSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.error_code
+        },
+        headers={
+            'WWW-Authenticate': f'Bearer {exc.optional_data}'.strip()
+        }
+    )
 
 
 # ===== ROUTES =====
