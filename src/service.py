@@ -4,6 +4,7 @@ import os
 import sys
 
 import pydantic.error_wrappers
+import uvicorn
 
 from data_models.settings import ServiceSettings
 
@@ -33,4 +34,8 @@ if __name__ == '__main__':
         logger.exception('The settings could not be read completely', exc_info=validation_error)
         sys.exit(1)
     logger.debug('The config now is %s', config)
+    uvicorn.run(
+        "api:auth_service",
+        port=5000
+    )
 
