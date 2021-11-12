@@ -25,6 +25,7 @@ class Scope(TableBase):
 
     users = relationship("UserScope", back_populates="scope")
     roles = relationship("RoleScope", back_populates="scope")
+    refresh_token_assignments = relationship("RefreshTokenScopeAssignment", back_populates="scope")
 
 
 class RoleScope(TableBase):
@@ -55,10 +56,14 @@ class Token(TableBase):
     token = Column(Text, unique=True)
     expires = Column(Integer, nullable=False)
     created = Column(Integer, nullable=False)
+    active = Column(Boolean)
 
     scopes = relationship("TokenScope", back_populates="token")
     user = relationship("UserToken", back_populates="token")
-    refresh_token = relationship("RefreshToken", back_populates="access_token")
+    refresh_token_assignments = relationship(
+        "RefreshTokenAssignment",
+        back_populates="access_token"
+    )
 
 
 class UserScope(TableBase):
@@ -119,7 +124,30 @@ class RefreshToken(TableBase):
 
     refresh_token_id = Column(Integer, primary_key=True)
     refresh_token = Column(Text, unique=True)
-    for_token = Column(Integer, ForeignKey('tokens.token_id'))
+    active = Column(Boolean)
     expires = Column(Integer)
 
-    access_token = relationship("Token", back_populates="refresh_token")
+    access_token_assignment = relationship("RefreshTokenAssignment", back_populates="refresh_token")
+    scope_assignments = relationship("RefreshTokenScopeAssignment", back_populates="refresh_token")
+
+
+class RefreshTokenAssignment(TableBase):
+    __tablename__ = "refresh_token_token"
+
+    mapping_id = Column(Integer, primary_key=True)
+    refresh_token_id = Column(Integer, ForeignKey("refresh_tokens.refresh_token_id"))
+    access_token_id = Column(Integer, ForeignKey("tokens.token_id"))
+
+    access_token = relationship("Token", back_populates="refresh_token_assignments")
+    refresh_token = relationship("RefreshToken", back_populates="access_token_assignment")
+
+
+class RefreshTokenScopeAssignment(TableBase):
+    __tablename__ = "refresh_token_scopes"
+
+    mapping_id = Column(Integer, primary_key=True)
+    refresh_token_id = Column(Integer, ForeignKey("refresh_tokens.refresh_token_id"))
+    scope_id = Column(Integer, ForeignKey("scopes.scope_id"))
+
+    scope = relationship("Scope", back_populates="refresh_token_assignments")
+    refresh_token = relationship("RefreshToken", back_populates="scope_assignments")
