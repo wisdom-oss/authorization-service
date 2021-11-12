@@ -1,10 +1,11 @@
+import random
 from typing import List, Optional
 
 from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
 from .role import assign_user_to_role
-from passlib.hash import bcrypt_sha256
+from passlib.hash import pbkdf2_sha512
 from db.crud.scope import assign_user_to_scope
 
 import data_models
@@ -47,7 +48,7 @@ def add_user(db: Session, new_user: data_models.User) -> objects.User:
     :param db: Database session
     :return: Database ORM user
     """
-    _password_hash = bcrypt_sha256.hash(new_user.password)
+    _password_hash = pbkdf2_sha512.hash(new_user.password, salt_size=random.randint(32, 1024))
     db_user = objects.User(
         first_name=new_user.first_name,
         last_name=new_user.last_name,
@@ -90,28 +91,31 @@ def update_user(db: Session, user_id: int, **new_values) -> objects.User:
     """
     if 'first_name' in new_values:
         db.execute(
-            update(objects.User).
-                where(objects.User.user_id == user_id).
-                values(first_name=new_values.get('first_name'))
+            update(objects.User)
+            .where(objects.User.user_id == user_id)
+            .values(first_name=new_values.get('first_name'))
         )
     if 'last_name' in new_values:
         db.execute(
-            update(objects.User).
-                where(objects.User.user_id == user_id).
-                values(last_name=new_values.get('last_name'))
+            update(objects.User)
+            .where(objects.User.user_id == user_id)
+            .values(last_name=new_values.get('last_name'))
         )
     if 'username' in new_values:
         db.execute(
-            update(objects.User).
-                where(objects.User.user_id == user_id).
-                values(username=new_values.get('username'))
+            update(objects.User)
+            .where(objects.User.user_id == user_id)
+            .values(username=new_values.get('username'))
         )
     if 'password' in new_values:
-        _password_hash = bcrypt_sha256.hash(new_values.get('password'))
+        _password_hash = pbkdf2_sha512.hash(
+            new_values.get('password'),
+            salt_size=random.randint(32, 1024)
+        )
         db.execute(
-            update(objects.User).
-                where(objects.User.user_id == user_id).
-                values(password=_password_hash)
+            update(objects.User)
+            .where(objects.User.user_id == user_id)
+            .values(password=_password_hash)
         )
     if 'scopes' in new_values:
         db.query(delete(objects.UserScope).where(objects.UserScope.user_id == user_id))

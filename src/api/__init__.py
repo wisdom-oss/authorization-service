@@ -1,27 +1,32 @@
 """Module describing the RESTful API Endpoints"""
 import uuid
+from typing import Optional
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Form
 from fastapi.responses import UJSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestFormStrict
 from sqlalchemy.orm import Session
 from starlette import status
-from passlib.hash import bcrypt_sha256
+from passlib.hash import pbkdf2_sha512
 
 from db import engine
 from db.crud.scope import get_scopes_for_user
-from db.crud.token import add_token
+from db.crud.token import add_token, get_access_token_via_value
 from .dependencies import get_db_session
 
 import data_models
 import db.crud.user
 
-db.TableBase.metadata.create_all(bind=engine)
-
 auth_service = FastAPI(
     docs_url=None,
     redoc_url=None
 )
+
+
+@auth_service.on_event('startup')
+def startup_actions():
+    db.TableBase.metadata.create_all(bind=engine)
+
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl='oauth/token',
@@ -53,7 +58,7 @@ async def login(
             }
         )
     # Check if the password matches the one saved in the database
-    if not bcrypt_sha256.verify(form_data.password, _db_user.password):
+    if not pbkdf2_sha512.verify(form_data.password, _db_user.password):
         return UJSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={
@@ -106,3 +111,19 @@ async def login(
             scope=scopes
         )
         return _token
+
+
+@auth_service.post(
+    path='/oauth/check_token'
+)
+async def check_token(
+        db_session: Session = Depends(get_db_session),
+        token: str = Form(None),
+        token_type_hint: str = Form(None)
+):
+    if token_type_hint == "access_token":
+        return get_access_token_via_value(db_session, token)
+    elif token_type_hint == "refresh_token":
+        return "Getting refresh_token_info"
+    else:
+        return "checking acccess and refresh tokens for value"
