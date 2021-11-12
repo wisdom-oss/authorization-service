@@ -40,10 +40,6 @@ def add_token(db: Session, user_id: int, scopes=Optional[List[str]]) -> Token:
     return _token
 
 
-def get_token(db: Session, token_id: int):
-    pass
-
-
 def get_access_token_via_value(db: Session, token_value: str) -> Token:
     return db.query(Token).filter(Token.token == token_value).first()
 
