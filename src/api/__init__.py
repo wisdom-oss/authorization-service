@@ -10,8 +10,8 @@ from starlette import status
 from passlib.hash import pbkdf2_sha512
 
 from db import engine
-from db.crud.scope import get_scopes_for_user
-from db.crud.token import add_token, get_access_token_via_value
+from db.crud.scope import get_scope_list_for_user
+from db.crud.token import add_token, get_access_token_via_value, get_refresh_token_via_value
 from .dependencies import get_db_session
 
 import data_models
@@ -76,7 +76,7 @@ async def login(
             }
         )
     # Check if the request included scopes if yes check if those are valid
-    _user_scopes = get_scopes_for_user(db_session, _db_user.user_id)
+    _user_scopes = get_scope_list_for_user(db_session, _db_user.user_id)
     if len(form_data.scopes) == 0:
         scopes = ""
         for scope in _user_scopes:

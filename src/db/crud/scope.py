@@ -28,7 +28,7 @@ def assign_named_scope_to_token(db: Session, scope_value: str, token_id: int):
         assign_scope_to_token(db, _scope.scope_id, token_id)
 
 
-def get_scopes_for_user(db: Session, user_id: int) -> Set[str]:
+def get_scope_list_for_user(db: Session, user_id: int) -> Set[str]:
     scope_list = []
     user_scopes = db.query(objects.UserScope).filter(objects.UserScope.user_id == user_id).all()
     for user_scope in user_scopes:
