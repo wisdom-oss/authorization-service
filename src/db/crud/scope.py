@@ -24,10 +24,27 @@ def assign_scope_to_token(db: Session, scope_id: int, token_id: int) -> objects.
     return assignment
 
 
+def assign_scope_to_refresh_token(db: Session, scope_id: int, token_id: int) -> objects.UserScope:
+    assignment = objects.RefreshTokenScopeAssignment(
+        scope_id=scope_id,
+        refresh_token_id=token_id
+    )
+    db.add(assignment)
+    db.commit()
+    db.refresh(assignment)
+    return assignment
+
+
 def assign_named_scope_to_token(db: Session, scope_value: str, token_id: int):
     _scope = db.query(objects.Scope).filter(objects.Scope.scope_value == scope_value).first()
     if _scope is not None:
         assign_scope_to_token(db, _scope.scope_id, token_id)
+
+
+def assign_named_scope_to_refresh_token(db: Session, scope_value: str, token_id: int):
+    _scope = db.query(objects.Scope).filter(objects.Scope.scope_value == scope_value).first()
+    if _scope is not None:
+        assign_scope_to_refresh_token(db, _scope.scope_id, token_id)
 
 
 def get_scope_list_for_user(db: Session, user_id: int) -> Set[str]:
@@ -75,21 +92,36 @@ def get_user_scopes_as_object_list(db: Session, user_id: int):
 
 def get_token_scopes_as_list(db: Session, token_id: int):
     scope_list = []
-    token_scope_assignments = db.query(objects.TokenScope).filter(
-        objects.TokenScope.token_id ==
-        token_id
-    ).all()
-    for token_scope_assignment in token_scope_assignments:
-        scope_list.append(token_scope_assignment.scope.scope_value)
+    for scope in get_token_scopes_as_object_list(db, token_id):
+        scope_list.append(scope.value)
     return list(set(scope_list))
 
 
 def get_token_scopes_as_object_list(db: Session, token_id: int):
     object_list = []
     token_scope_assignments = db.query(objects.TokenScope).filter(
-        objects.TokenScope.token_id ==
-        token_id
+        objects.TokenScope.token_id == token_id
     ).all()
     for token_scope_assignment in token_scope_assignments:
         object_list.append(data_models.Scope.from_orm(token_scope_assignment.scope))
+    return object_list
+
+
+def get_refresh_token_scopes_as_list(db: Session, token_id: int):
+    scope_list = []
+    for scope in get_refresh_token_scopes_as_object_list(db, token_id):
+        print(scope)
+        scope_list.append(scope.value)
+    return list(set(scope_list))
+
+
+def get_refresh_token_scopes_as_object_list(db: Session, token_id: int):
+    object_list = []
+    refresh_token_scope_assignments = db.query(objects.RefreshTokenScopeAssignment).filter(
+        objects.RefreshTokenScopeAssignment.refresh_token_id == token_id
+    ).all()
+    for refresh_token_scope_assignment in refresh_token_scope_assignments:
+        print(refresh_token_scope_assignment)
+        object_list.append(data_models.Scope.from_orm(refresh_token_scope_assignment.scope))
+    print(object_list)
     return object_list
