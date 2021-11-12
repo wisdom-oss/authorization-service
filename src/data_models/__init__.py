@@ -103,7 +103,8 @@ class User(BaseModel):
 class Token(BaseModel):
     access_token: str = Field(
         default=...,
-        title='Access token'
+        title='Access token',
+        alias='token'
     )
     token_type: str = Field(
         default="bearer",
@@ -115,6 +116,9 @@ class Token(BaseModel):
     )
     refresh_token: Optional[str] = Field(
         title='Refresh Token'
+    )
+    scope: Optional[str] = Field(
+        title='Token Scope'
     )
 
     class Config:
