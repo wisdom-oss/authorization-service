@@ -82,78 +82,82 @@ async def authorization_exception_handler(request: Request, exc: AuthorizationEx
     path='/oauth/token'
 )
 async def login(
-        form_data: OAuth2PasswordRequestFormStrict = Depends(),
+        form_data: CustomizedOAuth2PasswordRequestForm = Depends(),
         db_session: Session = Depends(get_db_session)
 ):
-    """Create a access and refresh token for the user to use further on
+    if form_data.grant_type == 'refresh_token':
+        if form_data.refresh_token == "" or form_data.refresh_token.strip() == "":
+            raise AuthorizationException('invalid_request', status.HTTP_400_BAD_REQUEST)
+        refresh_token_data = get_refresh_token_via_value(db_session, form_data.refresh_token)
+        if refresh_token_data is None \
+                or refresh_token_data.active is False \
+                or time.time() >= refresh_token_data.expires:
+            raise AuthorizationException('invalid_grant', status.HTTP_400_BAD_REQUEST)
+        if len(form_data.scopes) == 0:
+            scopes = get_refresh_token_scopes_as_list(
+                db_session, refresh_token_data.refresh_token_id
+            )
+            token = add_refreshed_token(db_session, form_data.refresh_token, scopes=scopes)
+            _token = data_models.Token(
+                access_token=token.token,
+                refresh_token=token.refresh_token_assignments[0].refresh_token.refresh_token,
+                scope=" ".join(scopes)
+            )
+            return _token
 
-    :param db_session:
-    :param form_data: OAuth2 Password Request data
-    :return: Access token and refresh token
-    """
-    _db_user = db.crud.user.get_user_by_username(db_session, form_data.username)
-    if _db_user is None:
-        return UJSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "error":             "invalid_grant",
-                "error_description": "The supplied credentials are not valid"
-            }
-        )
-    # Check if the password matches the one saved in the database
-    if not pbkdf2_sha512.verify(form_data.password, _db_user.password):
-        return UJSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "error":             "invalid_grant",
-                "error_description": "The supplied credentials are not valid"
-            }
-        )
-    # Check if the user is set to active
-    if not _db_user.is_active:
-        return UJSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "error":             "invalid_grant",
-                "error_description": "The user account is not authorized to receive a token"
-            }
-        )
-    # Check if the request included scopes if yes check if those are valid
-    _user_scopes = get_scope_list_for_user(db_session, _db_user.user_id)
-    if len(form_data.scopes) == 0:
-        scopes = ""
-        for scope in _user_scopes:
-            scopes += f'{scope} '
-        scopes = scopes.strip()
-        _generated_token = add_token(db_session, _db_user.user_id, _user_scopes)
-        _token = data_models.Token(
-            access_token=_generated_token.token,
-            refresh_token=_generated_token.refresh_token[0].refresh_token,
-            scope=scopes
-        )
-        return _token
-    else:
-        for scope in form_data.scopes:
-            if scope not in _user_scopes:
-                return UJSONResponse(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    content={
-                        "error":             "invalid_scope",
-                        "error_description": "The user account is not authorized to use one of "
-                                             "the requested scopes. Please check your users scope"
-                    }
-                )
-        _generated_token = add_token(db_session, _db_user.user_id, form_data.scopes)
-        scopes = ""
-        for scope in form_data.scopes:
-            scopes += f'{scope} '
-        scopes = scopes.strip()
-        _token = data_models.Token(
-            access_token=_generated_token.token,
-            refresh_token=_generated_token.refresh_token[0].refresh_token,
-            scope=scopes
-        )
-        return _token
+        else:
+            for scope in form_data.scopes:
+                for scope_assignment in refresh_token_data.scope_assignments:
+                    if scope_assignment.scope.scope_value != scope:
+                        raise AuthorizationException('invalid_scope', status.HTTP_400_BAD_REQUEST)
+            scopes = get_refresh_token_scopes_as_list(
+                db_session, refresh_token_data.refresh_token_id
+            )
+            token = add_refreshed_token(db_session, form_data.refresh_token, scopes=scopes)
+            _token = data_models.Token(
+                access_token=token.token,
+                refresh_token=token.refresh_token_assignments[0].refresh_token.refresh_token,
+                scope=" ".join(scopes)
+            )
+            return _token
+    if form_data.grant_type == 'password':
+        _db_user = db.crud.user.get_user_by_username(db_session, form_data.username)
+        if _db_user is None:
+            raise AuthorizationException('invalid_grant', status.HTTP_400_BAD_REQUEST)
+        # Check if the password matches the one saved in the database
+        if not pbkdf2_sha512.verify(form_data.password, _db_user.password):
+            raise AuthorizationException('invalid_grant', status.HTTP_400_BAD_REQUEST)
+        # Check if the user is set to active
+        if not _db_user.is_active:
+            raise AuthorizationException('invalid_grant', status.HTTP_400_BAD_REQUEST)
+        # Check if the request included scopes if yes check if those are valid
+        _user_scopes = get_scope_list_for_user(db_session, _db_user.user_id)
+        if len(form_data.scopes) == 0:
+            scopes = " ".join(_user_scopes)
+            token = add_token(db_session, _db_user.user_id, _user_scopes)
+            _token = data_models.Token(
+                access_token=token.token,
+                refresh_token=token.refresh_token_assignments[0].refresh_token.refresh_token,
+                scope=scopes
+            )
+            return _token
+        else:
+            for scope in form_data.scopes:
+                if scope not in _user_scopes:
+                    raise AuthorizationException(
+                        'invalid_scope',
+                        status_code=status.HTTP_400_BAD_REQUEST
+                    )
+
+            token = add_token(db_session, _db_user.user_id, form_data.scopes)
+            scopes = " ".join(form_data.scopes)
+            _token = data_models.Token(
+                access_token=token.token,
+                refresh_token=token.refresh_token_assignments[0].refresh_token.refresh_token,
+                scope=scopes
+            )
+            return _token
+    raise AuthorizationException('unsupported_grant_type', status.HTTP_400_BAD_REQUEST)
 
 
 @auth_service.post(
@@ -198,3 +202,32 @@ async def check_token(
     return data_models.IntrospectionResponse(
         active=False
     ).dict(exclude_unset=True, exclude_none=True)
+
+
+@auth_service.post(
+    path='/oauth/revoke'
+)
+async def revoke_token(
+        user: data_models.User = Security(get_user, scopes=["me"]),
+        db_session: Session = Depends(get_db_session),
+        token: str = Form(...)
+):
+    # Get information about the token, starting with the refresh_tokens
+    token_info = get_refresh_token_via_value(db_session, token)
+    if token_info is not None:
+        for assignment in token_info.access_token_assignment:
+            assignment.access_token.active = False
+            assignment.refresh_token.active = False
+            db_session.commit()
+        return Response(status_code=200, content="refresh")
+    token_info = get_access_token_via_value(db_session, token)
+    if token_info is not None:
+        for assignment in token_info.refresh_token_assignments:
+            assignment.refresh_token.active = False
+            assignment.access_token.active = False
+            db_session.commit()
+        token_info.active = False
+        db_session.commit()
+        return Response(status_code=200, content="access")
+    return Response(status_code=status.HTTP_200_OK)
+
