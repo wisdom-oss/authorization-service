@@ -1,4 +1,5 @@
 """Module describing the RESTful API Endpoints"""
+import time
 import uuid
 from typing import Optional
 
@@ -116,14 +117,38 @@ async def login(
 @auth_service.post(
     path='/oauth/check_token'
 )
-async def check_token(
-        db_session: Session = Depends(get_db_session),
-        token: str = Form(None),
-        token_type_hint: str = Form(None)
-):
-    if token_type_hint == "access_token":
-        return get_access_token_via_value(db_session, token)
-    elif token_type_hint == "refresh_token":
-        return "Getting refresh_token_info"
-    else:
-        return "checking acccess and refresh tokens for value"
+async def check_token(db_session: Session = Depends(get_db_session), token: str = Form(None)):
+    # Check the access_token table for a token with the value
+    _token = get_access_token_via_value(db_session, token)
+    if _token is not None:
+        if time.time() <= _token.expires:
+            # Create string of the scopes available for this user
+            scopes = " "
+            for token_scope in _token.scopes:
+                scopes += f'{token_scope.scope.scope_value} '
+            scopes = scopes.strip()
+            return data_models.IntrospectionResponse(
+                active=True,
+                scope=scopes,
+                username=_token.user[0].user.username,
+                token_type='access_token',
+                exp=_token.expires,
+                iat=_token.created
+            ).dict(exclude_unset=True, exclude_none=True)
+        else:
+            return data_models.IntrospectionResponse(
+                active=False
+            ).dict(exclude_unset=True, exclude_none=True)
+    _token = get_refresh_token_via_value(db_session, token)
+    if _token is not None:
+        if time.time() <= _token.expires:
+            # Create string of the scopes available for this token
+            return data_models.IntrospectionResponse(
+                active=True,
+                token_type='refresh_token',
+                username=_token.access_token.user[0].user.username,
+                exp=_token.expires,
+            ).dict(exclude_unset=True, exclude_none=True)
+    return data_models.IntrospectionResponse(
+        active=False
+    ).dict(exclude_unset=True, exclude_none=True)
