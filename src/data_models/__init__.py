@@ -19,6 +19,9 @@ class Scope(BaseModel):
     description: Optional[str] = Field(
         title='Scope description'
     )
+    value: Optional[str] = Field(
+        alias='scope_value'
+    )
 
     class Config:
         orm_mode = True
