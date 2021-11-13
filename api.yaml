@@ -16,6 +16,8 @@ tags:
   - name: Scope Operations
   - name: Role Operations
 
+
+
 components:
   schemas:
     Role:
@@ -462,7 +464,7 @@ paths:
                 password:
                   type: string
       responses:
-        204:
+        200:
           description: Successfully updated the user
   /users/{id}:
     parameters:
