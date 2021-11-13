@@ -32,18 +32,18 @@ class Scope(BaseModel):
 class Role(BaseModel):
     id: int = Field(
         default=...,
-        title='Internal Role ID'
+        title='Internal Role ID',
+        alias='role_id'
     )
     name: Optional[str] = Field(
-        default=...,
         title='Name of the role',
         description='This name should be unique throughout the whole system to avoid mix-ups with '
                     'roles which may have different scopes',
-        alias='name'
+        alias='role_name'
     )
     description: Optional[str] = Field(
-        default=...,
-        title='Description of the role. This may be displayed in the frontend'
+        title='Description of the role. This may be displayed in the frontend',
+        alias='role_description'
     )
     scopes: Optional[List[Scope]] = Field(
         title='Scopes granted by the role'

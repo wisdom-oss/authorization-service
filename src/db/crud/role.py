@@ -1,6 +1,9 @@
+from typing import List
+
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
+import data_models
 from data_models import Role
 from db import objects
 
@@ -23,3 +26,11 @@ def assign_user_to_role(db: Session, user_id: int, role_id: int) -> objects.User
 
 def get_roles_for_user(db: Session, user_id: int):
     return db.query(objects.UserRole).filter(objects.UserRole.user_id == user_id).all()
+
+
+def get_roles_for_user_as_object_list(db: Session, user_id: int) -> List[data_models.Role]:
+    object_list = []
+    assignments = get_roles_for_user(db, user_id)
+    for role_assignment in assignments:
+        object_list.append(data_models.Role.from_orm(role_assignment.role))
+    return object_list
