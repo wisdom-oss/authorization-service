@@ -41,27 +41,31 @@ def get_users(db: Session) -> List[objects.User]:
     return db.query(objects.User).all()
 
 
-def add_user(db: Session, new_user: data_models.User) -> objects.User:
+def add_user(db: Session, new_user: data_models.NewUser) -> objects.User:
     """Add a new user to the database
 
     :param new_user: The user which shall be inserted
     :param db: Database session
     :return: Database ORM user
     """
-    _password_hash = pbkdf2_sha512.hash(new_user.password, salt_size=random.randint(32, 1024))
+    _password_hash = pbkdf2_sha512.hash(
+        new_user.password.get_secret_value(),
+        salt_size=random.randint(32, 1024)
+    )
     db_user = objects.User(
-        first_name=new_user.first_name,
-        last_name=new_user.last_name,
-        username=new_user.username,
+        first_name=new_user.first_name.strip(),
+        last_name=new_user.last_name.strip(),
+        username=new_user.username.strip(),
         password=_password_hash,
         is_active=True
     )
     db.add(db_user)
     db.commit()
+    db.refresh(db_user)
     for scope in new_user.scopes:
-        assign_user_to_scope(db, scope.id, db_user.user_id)
+        assign_user_to_scope(db, db_user.user_id, scope)
     for role in new_user.roles:
-        assign_user_to_role(db, db_user.user_id, role.id)
+        assign_user_to_role(db, db_user.user_id, role)
     # Refresh the user after assigning the scopes and roles
     db.refresh(db_user)
     return db_user

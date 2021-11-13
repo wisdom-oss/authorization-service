@@ -1,7 +1,9 @@
 """Module describing the RESTful API Endpoints"""
 import time
 
+import sqlalchemy.exc
 from fastapi import Body, Depends, FastAPI, Form, Request, Security
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import UJSONResponse
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from passlib.hash import pbkdf2_sha512
@@ -12,7 +14,7 @@ from starlette.responses import Response
 import data_models
 import db.crud.user
 from db import DatabaseSession, engine
-from db.crud.user import update_user, get_user_by_id, remove_user, get_users
+from db.crud.user import update_user, get_user_by_id, remove_user, get_users, add_user
 from db.crud.role import get_role_dict_for_user, get_roles_for_user_as_list, \
     get_roles_for_user_as_object_list
 from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope_dict_for_user,
@@ -20,7 +22,7 @@ from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope_dict_for_
                            get_scopes_as_dict, get_token_scopes_as_list,
                            get_token_scopes_as_object_list)
 from db.crud.token import (add_refreshed_token, add_token, get_access_token_via_value,
-    get_refresh_token_via_value)
+                           get_refresh_token_via_value)
 from db.crud.user import get_user_by_username
 from .dependencies import CustomizedOAuth2PasswordRequestForm, get_db_session
 from .exceptions import AuthorizationException
@@ -86,7 +88,7 @@ async def authorization_exception_handler(request: Request, exc: AuthorizationEx
         return UJSONResponse(
             status_code=exc.status_code,
             content={
-                "error": exc.error_code,
+                "error":             exc.error_code,
                 "error_description": exc.error_description
             },
             headers={
@@ -94,6 +96,21 @@ async def authorization_exception_handler(request: Request, exc: AuthorizationEx
             }
         )
 
+
+@auth_service.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = {}
+    print(exc.errors())
+    for error in exc.errors():
+        errors.update({
+            error["loc"][-1]: error["msg"]
+        })
+    return UJSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "errors": errors
+        }
+    )
 
 # ===== ROUTES =====
 @auth_service.post(
@@ -362,3 +379,26 @@ async def get_all_users(
         user_list.append(_user)
     return user_list
 
+
+@auth_service.put(
+    path='/users'
+)
+async def add_user_to_system(
+        current_user=Security(get_user, scopes=["admin"]),
+        db_session: Session = Depends(get_db_session),
+        new_user: data_models.NewUser = Body(...)
+):
+    try:
+        user = add_user(db_session, new_user)
+        _user = data_models.User.from_orm(user)
+        _user.scopes = get_scope_dict_for_user(db_session, user.user_id)
+        _user.roles = get_role_dict_for_user(db_session, user.user_id)
+        return _user
+    except sqlalchemy.exc.IntegrityError as error:
+        print(error)
+        return UJSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "error": "Duplicate entries found during the user creation",
+            }
+        )

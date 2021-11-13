@@ -164,3 +164,37 @@ class IntrospectionResponse(BaseModel):
                     'UTC, indicating when this token was originally issued, as defined in JWT ['
                     'RFC7519].'
     )
+
+
+class NewUser(BaseModel):
+    first_name: Optional[str] = Field(
+        default=...,
+        title='First Name',
+        description='The first name(s) of the user',
+        alias='firstName'
+    )
+    last_name: Optional[str] = Field(
+        default=...,
+        title='Last Name',
+        description='The last name(s) of the user',
+        alias='lastName'
+    )
+    username: Optional[str] = Field(
+        default=...,
+        title='Username'
+    )
+    password: SecretStr = Field(
+        title='Password',
+        description='This should only be set if creating a new user or updating the user.',
+    )
+    scopes: Optional[List[int]] = Field(
+        default=[1],
+        title='Scopes',
+        description='This should always include the id of the me scope since the user wont be '
+                    'able to access his own information.'
+    )
+    roles: Optional[List[int]] = Field(
+        default=[],
+        title='Roles',
+        description='IDs of the roles granted to the user upon account creations'
+    )
