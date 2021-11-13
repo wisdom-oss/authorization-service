@@ -12,8 +12,8 @@ from starlette.responses import Response
 import data_models
 import db.crud.user
 from db import DatabaseSession, engine
-from db.crud.user import update_user
-from db.crud.role import get_roles_for_user_as_object_list
+from db.crud.user import update_user, get_user_by_id
+from db.crud.role import get_roles_for_user_as_list, get_roles_for_user_as_object_list
 from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope_list_for_user,
                            get_scopes_as_dict, get_token_scopes_as_list,
                            get_token_scopes_as_object_list)
@@ -58,14 +58,10 @@ async def get_user(
                 status.HTTP_401_UNAUTHORIZED,
                 optional_data=f"scope={security_scopes.scope_str}"
             )
-    return data_models.User(
-        id=user_data.user_id,
-        first_name=user_data.first_name,
-        last_name=user_data.last_name,
-        username=user_data.username,
-        scopes=get_token_scopes_as_object_list(db_session, token_data.token_id),
-        roles=get_roles_for_user_as_object_list(db_session, user_data.user_id)
-    )
+    _user = data_models.User.from_orm(user_data)
+    _user.scopes = get_token_scopes_as_object_list(db_session, token_data.token_id)
+    _user.roles = get_roles_for_user_as_object_list(db_session, user_data.user_id)
+    return _user
 
 
 # ===== EXCEPTION HANDLERS =====
