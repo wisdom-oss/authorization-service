@@ -45,6 +45,8 @@ async def get_user(
         raise AuthorizationException('invalid_token', status.HTTP_401_UNAUTHORIZED)
     if not token_data.active:
         raise AuthorizationException('invalid_token', status.HTTP_401_UNAUTHORIZED)
+    if time.time() >= token_data.expires:
+        raise AuthorizationException('invalid_token', status.HTTP_401_UNAUTHORIZED)
     user_data = get_user_by_username(db_session, token_data.user[0].user.username)
     token_scopes = get_token_scopes_as_list(db_session, token_data.token_id)
     for scope in security_scopes.scopes:
