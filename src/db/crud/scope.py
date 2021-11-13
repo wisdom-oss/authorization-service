@@ -60,6 +60,18 @@ def get_scope_list_for_user(db: Session, user_id: int) -> Set[str]:
     return set(scope_list)
 
 
+def get_scope_dict_for_user(db: Session, user_id: int) -> dict:
+    scope_dict = {}
+    user_scopes = db.query(objects.UserScope).filter(objects.UserScope.user_id == user_id).all()
+    for assignment in user_scopes:
+        scope_dict.update(
+            {
+                assignment.scope.scope_value: assignment.scope.scope_description
+            }
+        )
+    return scope_dict
+
+
 def remove_user_from_scope(db: Session, scope_id: int, user_id: int):
     assignment = objects.UserScope(scope_id=scope_id, user_id=user_id)
     db.refresh(assignment)
