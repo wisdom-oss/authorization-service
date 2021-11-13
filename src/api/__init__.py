@@ -214,20 +214,42 @@ async def revoke_token(
 ):
     # Get information about the token, starting with the refresh_tokens
     token_info = get_refresh_token_via_value(db_session, token)
-    if token_info is not None:
-        for assignment in token_info.access_token_assignment:
-            assignment.access_token.active = False
-            assignment.refresh_token.active = False
+    # Check if the token is owned by the current user
+    if token_info.access_token_assignment[0].access_token.user[0].user_id == user.id:
+        if token_info is not None:
+            for assignment in token_info.access_token_assignment:
+                assignment.access_token.active = False
+                assignment.refresh_token.active = False
+                db_session.commit()
+            return Response(status_code=200, content="refresh")
+        token_info = get_access_token_via_value(db_session, token)
+        if token_info is not None:
+            for assignment in token_info.refresh_token_assignments:
+                assignment.refresh_token.active = False
+                assignment.access_token.active = False
+                db_session.commit()
+            token_info.active = False
             db_session.commit()
-        return Response(status_code=200, content="refresh")
-    token_info = get_access_token_via_value(db_session, token)
-    if token_info is not None:
-        for assignment in token_info.refresh_token_assignments:
-            assignment.refresh_token.active = False
-            assignment.access_token.active = False
+            return Response(status_code=200, content="access")
+    else:
+        if "admin" not in user.scopes:
+            raise AuthorizationException(
+                'insufficient_scope', status.HTTP_403_FORBIDDEN, optional_data="scope=admin"
+            )
+        if token_info is not None:
+            for assignment in token_info.access_token_assignment:
+                assignment.access_token.active = False
+                assignment.refresh_token.active = False
+                db_session.commit()
+            return Response(status_code=200)
+        token_info = get_access_token_via_value(db_session, token)
+        if token_info is not None:
+            for assignment in token_info.refresh_token_assignments:
+                assignment.refresh_token.active = False
+                assignment.access_token.active = False
+                db_session.commit()
+            token_info.active = False
             db_session.commit()
-        token_info.active = False
-        db_session.commit()
-        return Response(status_code=200, content="access")
+            return Response(status_code=200)
     return Response(status_code=status.HTTP_200_OK)
 
