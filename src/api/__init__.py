@@ -257,3 +257,14 @@ async def revoke_token(
             return Response(status_code=200)
     return Response(status_code=status.HTTP_200_OK)
 
+
+@auth_service.get(
+    path='/users/me'
+)
+def get_user_information(
+        user: data_models.User = Security(get_user, scopes=["me"]),
+        db_session: Session = Depends(get_db_session)
+):
+    _user = user
+    _user.scopes = get_scope_list_for_user(db_session, user.id)
+    return _user
