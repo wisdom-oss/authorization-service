@@ -125,5 +125,7 @@ def update_user(db: Session, user_id: int, **new_values) -> objects.User:
         db.query(delete(objects.UserRole).where(objects.UserRole.user_id == user_id))
         for role in new_values.get('roles'):
             assign_user_to_role(db, user_id, role.id)
+    # Commit the changes made to the database
+    db.commit()
     # Return the updated user
     return db.query(objects.User).filter(objects.User.user_id == user_id).first()

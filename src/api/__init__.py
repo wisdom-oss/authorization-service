@@ -1,7 +1,7 @@
 """Module describing the RESTful API Endpoints"""
 import time
 
-from fastapi import Depends, FastAPI, Form, Request, Security
+from fastapi import Body, Depends, FastAPI, Form, Request, Security
 from fastapi.responses import UJSONResponse
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from passlib.hash import pbkdf2_sha512
@@ -12,6 +12,7 @@ from starlette.responses import Response
 import data_models
 import db.crud.user
 from db import DatabaseSession, engine
+from db.crud.user import update_user
 from db.crud.role import get_roles_for_user_as_object_list
 from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope_list_for_user,
                            get_scopes_as_dict, get_token_scopes_as_list,
@@ -268,3 +269,18 @@ def get_user_information(
     _user = user
     _user.scopes = get_scope_list_for_user(db_session, user.id)
     return _user
+
+
+@auth_service.patch(
+    path='/users/me'
+)
+def update_current_user(
+        user: data_models.User = Security(get_user, scopes=["me"]),
+        db_session: Session = Depends(get_db_session),
+        password: str = Body(..., embed=True)
+):
+    _user = update_user(db_session, user.id, password=password)
+    if pbkdf2_sha512.verify(password, _user.password):
+        return Response(status_code=status.HTTP_200_OK)
+    else:
+        return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
