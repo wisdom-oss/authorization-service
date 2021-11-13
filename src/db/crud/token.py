@@ -57,9 +57,9 @@ def add_refreshed_token(
         scopes=Optional[List[str]]
 ) -> Token:
     _data = get_refresh_token_via_value(db, refresh_token)
-    print(_data.access_token_assignment)
-    return add_token(db, _data.access_token_assignment[0].access_token.user[0].user_id, scopes,
-        _data)
+    return add_token(
+        db, _data.access_token_assignment[0].access_token.user[0].user_id, scopes, _data
+    )
 
 
 def get_access_token_via_value(db: Session, token_value: str) -> Token:

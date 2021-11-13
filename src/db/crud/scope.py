@@ -110,7 +110,6 @@ def get_token_scopes_as_object_list(db: Session, token_id: int):
 def get_refresh_token_scopes_as_list(db: Session, token_id: int):
     scope_list = []
     for scope in get_refresh_token_scopes_as_object_list(db, token_id):
-        print(scope)
         scope_list.append(scope.value)
     return list(set(scope_list))
 
@@ -121,7 +120,5 @@ def get_refresh_token_scopes_as_object_list(db: Session, token_id: int):
         objects.RefreshTokenScopeAssignment.refresh_token_id == token_id
     ).all()
     for refresh_token_scope_assignment in refresh_token_scope_assignments:
-        print(refresh_token_scope_assignment)
         object_list.append(data_models.Scope.from_orm(refresh_token_scope_assignment.scope))
-    print(object_list)
     return object_list
