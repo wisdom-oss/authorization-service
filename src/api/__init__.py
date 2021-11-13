@@ -307,9 +307,12 @@ async def get_user_information(
 ):
     user_data = get_user_by_id(db_session, user_id)
     if user_data is None:
-        return UJSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={
-            "error": "no_such_user"
-        })
+        return UJSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                "error": "no_such_user"
+            }
+        )
     _user = data_models.User.from_orm(user_data)
     _user.roles = get_roles_for_user_as_list(db_session, user_data.user_id)
     _user.scopes = get_scope_list_for_user(db_session, user_data.user_id)
