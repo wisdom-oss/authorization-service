@@ -12,9 +12,11 @@ from starlette.responses import Response
 import data_models
 import db.crud.user
 from db import DatabaseSession, engine
-from db.crud.user import update_user, get_user_by_id, remove_user
-from db.crud.role import get_roles_for_user_as_list, get_roles_for_user_as_object_list
-from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope_list_for_user,
+from db.crud.user import update_user, get_user_by_id, remove_user, get_users
+from db.crud.role import get_role_dict_for_user, get_roles_for_user_as_list, \
+    get_roles_for_user_as_object_list
+from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope_dict_for_user,
+                           get_scope_list_for_user,
                            get_scopes_as_dict, get_token_scopes_as_list,
                            get_token_scopes_as_object_list)
 from db.crud.token import (add_refreshed_token, add_token, get_access_token_via_value,
@@ -156,7 +158,7 @@ async def login(
                 refresh_token=token.refresh_token_assignments[0].refresh_token.refresh_token,
                 scope=scopes
             )
-            return _token
+            return _token.dict(by_alias=False)
         else:
             for scope in form_data.scopes:
                 if scope not in _user_scopes:
@@ -342,3 +344,21 @@ async def delete_user(
 ):
     remove_user(db_session, user_id)
     return Response(status_code=status.HTTP_200_OK)
+
+
+@auth_service.get(
+    path='/users'
+)
+async def get_all_users(
+        current_user=Security(get_user, scopes=["admin"]),
+        db_session: Session = Depends(get_db_session)
+):
+    user_list = []
+    users = get_users(db_session)
+    for user in users:
+        _user = data_models.User.from_orm(user)
+        _user.scopes = get_scope_dict_for_user(db_session, user.user_id)
+        _user.roles = get_role_dict_for_user(db_session, user.user_id)
+        user_list.append(_user)
+    return user_list
+
