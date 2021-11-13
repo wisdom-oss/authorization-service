@@ -317,3 +317,16 @@ async def get_user_information(
     _user.roles = get_roles_for_user_as_list(db_session, user_data.user_id)
     _user.scopes = get_scope_list_for_user(db_session, user_data.user_id)
     return _user
+
+
+@auth_service.patch(
+    path='/users/{user_id}'
+)
+async def update_user_information(
+        user_id: int,
+        current_user=Security(get_user, scopes=["admin"]),
+        db_session: Session = Depends(get_db_session),
+        new_user_information=Body(...)
+):
+    _user = update_user(db_session, user_id, **new_user_information)
+    return Response(status_code=status.HTTP_200_OK)
