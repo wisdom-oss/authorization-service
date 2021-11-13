@@ -264,6 +264,7 @@ def get_user_information(
 ):
     _user = user
     _user.scopes = get_scope_list_for_user(db_session, user.id)
+    _user.roles = get_roles_for_user_as_list(db_session, user.id)
     return _user
 
 
@@ -280,3 +281,21 @@ def update_current_user(
         return Response(status_code=status.HTTP_200_OK)
     else:
         return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@auth_service.get(
+    path='/users/{user_id}'
+)
+async def get_user_information(
+        user_id: int, current_user=Security(get_user, scopes=["admin"]), db_session: Session =
+        Depends(get_db_session)
+):
+    user_data = get_user_by_id(db_session, user_id)
+    if user_data is None:
+        return UJSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={
+            "error": "no_such_user"
+        })
+    _user = data_models.User.from_orm(user_data)
+    _user.roles = get_roles_for_user_as_list(db_session, user_data.user_id)
+    _user.scopes = get_scope_list_for_user(db_session, user_data.user_id)
+    return _user

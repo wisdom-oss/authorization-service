@@ -34,3 +34,11 @@ def get_roles_for_user_as_object_list(db: Session, user_id: int) -> List[data_mo
     for role_assignment in assignments:
         object_list.append(data_models.Role.from_orm(role_assignment.role))
     return object_list
+
+
+def get_roles_for_user_as_list(db: Session, user_id: int) -> List[str]:
+    role_list = []
+    assignments = get_roles_for_user(db, user_id)
+    for role_assignment in assignments:
+        role_list.append(role_assignment.role.role_name)
+    return role_list
