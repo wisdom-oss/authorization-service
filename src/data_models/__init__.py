@@ -2,7 +2,7 @@
 used in responses and request parsing"""
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 
 class Scope(BaseModel):
@@ -60,7 +60,8 @@ class User(BaseModel):
         default=...,
         title='User ID',
         description='Internally used id for every account present in the system. This user id may '
-                    'be used for updating users'
+                    'be used for updating users',
+        alias='user_id'
     )
     first_name: Optional[str] = Field(
         default=...,
@@ -78,9 +79,9 @@ class User(BaseModel):
         default=...,
         title='Username'
     )
-    password: Optional[str] = Field(
+    password: Optional[SecretStr] = Field(
         title='Password',
-        description='This should only be set if creating a new user or updating the user.'
+        description='This should only be set if creating a new user or updating the user.',
     )
     last_login: Optional[int] = Field(
         title='Last Login (UNIX Timestamp)',
