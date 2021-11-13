@@ -104,15 +104,18 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
     errors = {}
     print(exc.errors())
     for error in exc.errors():
-        errors.update({
-            error["loc"][-1]: error["msg"]
-        })
+        errors.update(
+            {
+                error["loc"][-1]: error["msg"]
+            }
+        )
     return UJSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content={
             "errors": errors
         }
     )
+
 
 # ===== ROUTES =====
 @auth_service.post(
