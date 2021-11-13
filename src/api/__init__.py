@@ -12,13 +12,13 @@ from starlette.responses import Response
 import data_models
 import db.crud.user
 from db import DatabaseSession, engine
-from db.crud.user import update_user, get_user_by_id
+from db.crud.user import update_user, get_user_by_id, remove_user
 from db.crud.role import get_roles_for_user_as_list, get_roles_for_user_as_object_list
 from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope_list_for_user,
                            get_scopes_as_dict, get_token_scopes_as_list,
                            get_token_scopes_as_object_list)
-from db.crud.token import add_refreshed_token, add_token, get_access_token_via_value, \
-    get_refresh_token_via_value
+from db.crud.token import (add_refreshed_token, add_token, get_access_token_via_value,
+    get_refresh_token_via_value)
 from db.crud.user import get_user_by_username
 from .dependencies import CustomizedOAuth2PasswordRequestForm, get_db_session
 from .exceptions import AuthorizationException
@@ -329,4 +329,16 @@ async def update_user_information(
         new_user_information=Body(...)
 ):
     _user = update_user(db_session, user_id, **new_user_information)
+    return Response(status_code=status.HTTP_200_OK)
+
+
+@auth_service.delete(
+    path='/users/{user_id}',
+)
+async def delete_user(
+        user_id: int,
+        current_user=Security(get_user, scopes=["admin"]),
+        db_session: Session = Depends(get_db_session)
+):
+    remove_user(db_session, user_id)
     return Response(status_code=status.HTTP_200_OK)
