@@ -42,3 +42,13 @@ def get_roles_for_user_as_list(db: Session, user_id: int) -> List[str]:
     for role_assignment in assignments:
         role_list.append(role_assignment.role.role_name)
     return role_list
+
+
+def get_role_dict_for_user(db: Session, user_id: int) -> dict:
+    role_dict = {}
+    assignments = get_roles_for_user(db, user_id)
+    for assignment in assignments:
+        role_dict.update({
+            assignment.role.role_id: assignment.role.role_name
+        })
+    return role_dict
