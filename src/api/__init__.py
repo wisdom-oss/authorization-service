@@ -41,7 +41,10 @@ async def get_user(
         db_session=Depends(get_db_session)
 ):
     if token is None or token == "undefined":
-        raise AuthorizationException("invalid_request", status.HTTP_400_BAD_REQUEST)
+        raise AuthorizationException(
+            "invalid_request", status.HTTP_400_BAD_REQUEST,
+            error_description="There is no Bearer Token present in the request."
+        )
     token_data = get_access_token_via_value(db_session, token)
     if token_data is None:
         raise AuthorizationException('invalid_token', status.HTTP_401_UNAUTHORIZED)
@@ -67,15 +70,27 @@ async def get_user(
 # ===== EXCEPTION HANDLERS =====
 @auth_service.exception_handler(AuthorizationException)
 async def authorization_exception_handler(request: Request, exc: AuthorizationException):
-    return UJSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": exc.error_code
-        },
-        headers={
-            'WWW-Authenticate': f'Bearer {exc.optional_data}'.strip()
-        }
-    )
+    if exc.error_description is None:
+        return UJSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": exc.error_code
+            },
+            headers={
+                'WWW-Authenticate': f'Bearer {exc.optional_data}'.strip()
+            }
+        )
+    else:
+        return UJSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": exc.error_code,
+                "error_description": exc.error_description
+            },
+            headers={
+                'WWW-Authenticate': f'Bearer {exc.optional_data}'.strip()
+            }
+        )
 
 
 # ===== ROUTES =====
