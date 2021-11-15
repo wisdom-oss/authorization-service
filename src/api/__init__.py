@@ -404,6 +404,6 @@ async def add_user_to_system(
         return UJSONResponse(
             status_code=status.HTTP_409_CONFLICT,
             content={
-                "error": "Duplicate entries found during the user creation",
+                "error": "User already exists",
             }
         )
