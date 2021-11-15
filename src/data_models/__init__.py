@@ -14,10 +14,12 @@ class Scope(BaseModel):
     name: Optional[str] = Field(
         title='Name of the Scope',
         description='This name should be unique throughout the wohle system to avoid any mix-ups '
-                    'with scopes granting a different access to the system'
+                    'with scopes granting a different access to the system',
+        alias='scope_name'
     )
     description: Optional[str] = Field(
-        title='Scope description'
+        title='Scope description',
+        alias='scope_description'
     )
     value: Optional[str] = Field(
         alias='scope_value'

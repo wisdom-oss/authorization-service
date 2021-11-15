@@ -134,3 +134,7 @@ def get_refresh_token_scopes_as_object_list(db: Session, token_id: int):
     for refresh_token_scope_assignment in refresh_token_scope_assignments:
         object_list.append(data_models.Scope.from_orm(refresh_token_scope_assignment.scope))
     return object_list
+
+
+def get_scope(db: Session, scope_id: int):
+    return db.query(objects.Scope).filter(objects.Scope.scope_id == scope_id).first()

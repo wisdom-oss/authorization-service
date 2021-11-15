@@ -15,11 +15,10 @@ import data_models
 import db.crud.user
 from db import DatabaseSession, engine
 from db.crud.user import update_user, get_user_by_id, remove_user, get_users, add_user
-from db.crud.role import get_role_dict_for_user, get_roles_for_user_as_list, \
-    get_roles_for_user_as_object_list
-from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope_dict_for_user,
-                           get_scope_list_for_user,
-                           get_scopes_as_dict, get_token_scopes_as_list,
+from db.crud.role import (get_role_dict_for_user, get_roles_for_user_as_list,
+                          get_roles_for_user_as_object_list)
+from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope, get_scope_dict_for_user,
+                           get_scope_list_for_user, get_scopes_as_dict, get_token_scopes_as_list,
                            get_token_scopes_as_object_list)
 from db.crud.token import (add_refreshed_token, add_token, get_access_token_via_value,
                            get_refresh_token_via_value)
@@ -144,7 +143,6 @@ async def login(
                 scope=" ".join(scopes)
             )
             return _token
-
         else:
             for scope in form_data.scopes:
                 for scope_assignment in refresh_token_data.scope_assignments:
@@ -238,6 +236,7 @@ async def check_token(
                 token_type='refresh_token',
                 username=_token.access_token.user[0].user.username,
                 exp=_token.expires,
+                iat=None
             ).dict(exclude_unset=True, exclude_none=True)
     return data_models.IntrospectionResponse(
         active=False
@@ -293,6 +292,7 @@ async def revoke_token(
             return Response(status_code=200)
     return Response(status_code=status.HTTP_200_OK)
 
+# ===== End of User Routes =====
 
 @auth_service.get(
     path='/users/me'
@@ -407,3 +407,15 @@ async def add_user_to_system(
                 "error": "User already exists",
             }
         )
+
+
+@auth_service.get(
+    path='/scopes/{scope_id}'
+)
+async def get_scope_information(
+        scope_id: int,
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"])
+):
+    scope_information = get_scope(db_session, scope_id)
+    return data_models.Scope.from_orm(scope_information)
