@@ -101,59 +101,10 @@ components:
           tokenUrl: /oauth/token
           refreshUrl: /oauth/token
           scopes:
-            "admin:*": Administrate all functions of the system
-            "admin:users": Administrate the users
+            "admin": Administrate all functions of the system
+            "me": Read account data
 
 paths:
-  /oauth/revoke:
-    post:
-      summary: Revoke an active token
-      description: >-
-        **AUTHORIZATION IS REQUIRED FOR THIS ACTION**
-
-        Via this path you can revoke an already issued access token or refresh
-        token. The server will not return any errors if the token is not found
-        on this system, since it cannot be deactivated. For more information
-        please refer to the RFC6749 document.
-
-        **WARNING**
-
-        If you revoke an access token, the refresh_token associated to this refresh_token will also
-        be revoked.
-      tags:
-        - Login Operations
-      security:
-        - authorization:
-            - '*'
-      requestBody:
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              properties:
-                token:
-                  type: string
-                  description: |
-                    The token that the client wants to get revoked.
-
-                token_type_hint:
-                  type: string
-                  description: |
-                    **OPTIONAL:**
-                    A hint about the type of the token submitted for revocation.  Clients MAY
-                    pass this parameter in order to help the authorization server to optimize the
-                    token lookup.  If the server is unable to locate the token using the given
-                    hint, it MUST extend its search across all of its supported token types.  An
-                    authorization server MAY ignore this parameter, particularly if it is able to
-                    detect the token type automatically.  This specification defines two such
-                    values:
-                      * access_token: An access token as defined in [RFC6749], Section 1.4
-                      * refresh_token: An refresh token as defined in [RFC6749], Section 1.5
-              required:
-                - token
-      responses:
-        200:
-          description: Standard response
   /oauth/token:
     post:
       summary: Authorize a user via the credentails
@@ -392,6 +343,55 @@ paths:
                       Integer timestamp, measured in the number of seconds since January 1 1970
                       UTC, indicating when this token was originally issued, as defined in JWT
                       [RFC7519].
+  /oauth/revoke:
+    post:
+      summary: Revoke an active token
+      description: >
+        Via this path you can revoke an already issued access token or refresh token. The server
+        will not return any errors if the token is not found on this system, since it cannot be
+        deactivated. For more information please refer to the RFC6749. If you revoke an access
+        token, the refresh_token associated to this refresh_token will also be revoked. If you
+        revoke a refresh token all access tokens associated with this refresh token will be
+        revoked too.
+
+
+        **NOTE:** As a user with the scope "admin" you may revoke the tokens of other users.
+        Please use this action carefully.
+      tags:
+        - Login Operations
+      security:
+        - authorization:
+            - '*'
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: |
+                    The token that the client wants to get revoked.
+
+                token_type_hint:
+                  type: string
+                  description: |
+                    **OPTIONAL:**
+                    A hint about the type of the token submitted for revocation.  Clients MAY
+                    pass this parameter in order to help the authorization server to optimize the
+                    token lookup.  If the server is unable to locate the token using the given
+                    hint, it MUST extend its search across all of its supported token types.  An
+                    authorization server MAY ignore this parameter, particularly if it is able to
+                    detect the token type automatically.  This specification defines two such
+                    values:
+                      * access_token: An access token as defined in [RFC6749], Section 1.4
+                      * refresh_token: An refresh token as defined in [RFC6749], Section 1.5
+              required:
+                - token
+      responses:
+        200:
+          description: Standard response
+
   /users:
     get:
       tags:
@@ -413,10 +413,12 @@ paths:
       tags:
         - User Operations
       summary: Create a new user
+      description: |
+        When sending a request all inputs will be stripped of trailing and leading whitespaces.
+        The only field exempt from this is the password.
       security:
         - authorization:
-            - admin:*
-            - admin:users
+            - admin
       requestBody:
         content:
           application/json:
