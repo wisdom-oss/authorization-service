@@ -422,6 +422,21 @@ async def get_scope_information(
     return data_models.Scope.from_orm(scope_information)
 
 
+@auth_service.delete(
+    path='/scopes/{scope_id}'
+)
+async def delete_scope(
+        scope_id: int,
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"])
+):
+    scope = get_scope(db_session, scope_id)
+    if scope is not None:
+        db_session.delete(scope)
+        db_session.commit()
+    return Response(status_code=status.HTTP_200_OK)
+
+
 @auth_service.get(
     path='/scopes'
 )
