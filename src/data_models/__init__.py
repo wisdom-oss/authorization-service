@@ -1,6 +1,6 @@
 """Module for describing the data models which will be used to work with the data and will be
 used in responses and request parsing"""
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field, SecretStr
 
@@ -32,23 +32,24 @@ class Scope(BaseModel):
 
 
 class Role(BaseModel):
-    id: int = Field(
+    role_id: int = Field(
         default=...,
         title='Internal Role ID',
-        alias='role_id'
+        alias='id'
     )
-    name: Optional[str] = Field(
+    role_name: Optional[str] = Field(
         title='Name of the role',
         description='This name should be unique throughout the whole system to avoid mix-ups with '
                     'roles which may have different scopes',
-        alias='role_name'
+        alias='name'
     )
-    description: Optional[str] = Field(
+    role_description: Optional[str] = Field(
         title='Description of the role. This may be displayed in the frontend',
-        alias='role_description'
+        alias='description'
     )
-    scopes: Optional[List[Scope]] = Field(
-        title='Scopes granted by the role'
+    role_scopes: Union[List[Scope], str, None] = Field(
+        title='Scopes granted by the role',
+        alias='scopes'
     )
 
     class Config:

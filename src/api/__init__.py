@@ -1,6 +1,6 @@
 """Module describing the RESTful API Endpoints"""
 import time
-from typing import List
+from typing import List, Set
 
 import sqlalchemy.exc
 from fastapi import Body, Depends, FastAPI, Form, Request, Security
@@ -17,12 +17,13 @@ import data_models
 import db.crud.user
 from db import DatabaseSession, engine
 from db.crud.user import update_user, get_user_by_id, remove_user, get_users, add_user
-from db.crud.role import (get_role_dict_for_user, get_roles_for_user_as_list,
-                          get_roles_for_user_as_object_list)
+from db.crud.role import (add_role, get_role_dict_for_user, get_role_information, get_roles,
+                          get_roles_for_user_as_list,
+                          get_roles_for_user_as_object_list, update_role)
 from db.crud.scope import (add_scope, get_refresh_token_scopes_as_list, get_scope,
                            get_scope_dict_for_user,
                            get_scope_list_for_user, get_scopes, get_scopes_as_dict,
-                           get_token_scopes_as_list,
+                           get_scopes_for_role, get_token_scopes_as_list,
                            get_token_scopes_as_object_list, update_scope)
 from db.crud.token import (add_refreshed_token, add_token, get_access_token_via_value,
                            get_refresh_token_via_value)
@@ -480,3 +481,83 @@ async def update_scopes(
         scope_data: data_models.Scope = Body(...)
 ):
     return update_scope(db_session, **scope_data.dict())
+
+
+@auth_service.get(
+    path='/roles/{role_id}'
+)
+async def get_role(
+        role_id: int,
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"])
+):
+    _ = get_role_information(db_session, role_id)
+    if _ is None:
+        return Response(status_code=status.HTTP_404_NOT_FOUND)
+    role = data_models.Role.from_orm(_)
+    role.scopes = get_scopes_for_role(db_session, role.role_id)
+    return role
+
+
+@auth_service.delete(
+    path='/roles/{role_id}'
+)
+async def delete_role(
+        role_id: int,
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"])
+):
+    role = get_role_information(db_session, role_id)
+    if role is not None:
+        db_session.delete(role)
+        db_session.commit()
+    return Response(status_code=status.HTTP_200_OK)
+
+
+@auth_service.get(
+    path='/roles'
+)
+async def get_all_roles(
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"])
+):
+    _ = get_roles(db_session)
+    roles = parse_obj_as(List[data_models.Role], _)
+    for role in roles:
+        role.scopes = get_scopes_for_role(db_session, role.role_id)
+    return roles
+
+
+@auth_service.put(
+    path='/roles'
+)
+async def add_role_to_system(
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"]),
+        name: constr(max_length=200, strip_whitespace=True) = Body(...),
+        description: constr(strip_whitespace=True) = Body(...),
+        scopes: str = Body("")
+):
+    try:
+        return data_models.Role.from_orm(add_role(db_session, name, description, scopes.split(" ")))
+    except sqlalchemy.exc.IntegrityError as error:
+        print(error)
+        return UJSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "error": "Role already exists",
+            }
+        )
+
+
+@auth_service.patch(
+    path='/roles'
+)
+async def add_role_to_system(
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"]),
+        role: data_models.Role = Body(...)
+):
+    updated_role = data_models.Role.from_orm(update_role(db_session, **role.dict()))
+    updated_role.role_scopes = get_scopes_for_role(db_session, updated_role.role_id)
+    return updated_role

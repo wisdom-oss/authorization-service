@@ -1,4 +1,4 @@
-from typing import Set
+from typing import List, Set
 
 from sqlalchemy.orm import Session
 
@@ -166,4 +166,18 @@ def update_scope(db: Session, scope_id: int, **kwargs):
     db.commit()
     db.refresh(scope)
     return data_models.Scope.from_orm(scope)
+
+
+def get_scopes_for_role(db: Session, role_id: int) -> List[data_models.Scope]:
+    scopes: List[data_models.Scope] = []
+    scope_assoc = db.query(objects.RoleScope).filter(objects.RoleScope.role_id == role_id).all()
+    for assoc in scope_assoc:
+        _ = assoc.scope
+        scopes.append(data_models.Scope.from_orm(_))
+    return scopes
+
+
+def get_scope_by_value(db: Session, scope_value: str):
+    return db.query(objects.Scope).filter(objects.Scope.scope_value == scope_value).first()
+
 
