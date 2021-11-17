@@ -377,13 +377,11 @@ async def get_all_users(
         current_user=Security(get_user, scopes=["admin"]),
         db_session: Session = Depends(get_db_session)
 ):
-    user_list = []
     users = get_users(db_session)
-    for user in users:
-        _user = data_models.User.from_orm(user)
-        _user.scopes = get_scope_dict_for_user(db_session, user.user_id)
-        _user.roles = get_role_dict_for_user(db_session, user.user_id)
-        user_list.append(_user)
+    user_list = parse_obj_as(List[data_models.User], users)
+    for user in user_list:
+        user.scopes = get_scope_dict_for_user(db_session, user.id)
+        user.roles = get_role_dict_for_user(db_session, user.id)
     return user_list
 
 
