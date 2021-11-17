@@ -135,7 +135,7 @@ def get_refresh_token_scopes_as_object_list(db: Session, token_id: int):
     return object_list
 
 
-def get_scope(db: Session, scope_id: int):
+def get_scope(db: Session, scope_id: int) -> objects.Scope:
     return db.query(objects.Scope).filter(objects.Scope.scope_id == scope_id).first()
 
 
@@ -153,3 +153,17 @@ def add_scope(db: Session, name: str, description: str, value: str):
     db.commit()
     db.refresh(_)
     return data_models.Scope.from_orm(_)
+
+
+def update_scope(db: Session, scope_id: int, **kwargs):
+    scope = get_scope(db, scope_id)
+    if "scope_name" in kwargs and kwargs["scope_name"] is not None:
+        scope.scope_name = kwargs["scope_name"].strip()
+    if "scope_description" in kwargs and kwargs["scope_description"] is not None:
+        scope.scope_description = kwargs["scope_description"].strip()
+    if "scope_value" in kwargs and kwargs["scope_value"] is not None:
+        scope.scope_value = kwargs["scope_value"].strip()
+    db.commit()
+    db.refresh(scope)
+    return data_models.Scope.from_orm(scope)
+

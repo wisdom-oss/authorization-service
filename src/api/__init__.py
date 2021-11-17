@@ -23,7 +23,7 @@ from db.crud.scope import (add_scope, get_refresh_token_scopes_as_list, get_scop
                            get_scope_dict_for_user,
                            get_scope_list_for_user, get_scopes, get_scopes_as_dict,
                            get_token_scopes_as_list,
-                           get_token_scopes_as_object_list)
+                           get_token_scopes_as_object_list, update_scope)
 from db.crud.token import (add_refreshed_token, add_token, get_access_token_via_value,
                            get_refresh_token_via_value)
 from db.crud.user import get_user_by_username
@@ -454,3 +454,14 @@ async def add_scope_to_system(
                 "error": "Scope already exists",
             }
         )
+
+
+@auth_service.patch(
+    path='/scopes'
+)
+async def update_scopes(
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"]),
+        scope_data: data_models.Scope = Body(...)
+):
+    return update_scope(db_session, **scope_data.dict())
