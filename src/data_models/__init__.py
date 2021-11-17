@@ -6,23 +6,23 @@ from pydantic import BaseModel, Field, SecretStr
 
 
 class Scope(BaseModel):
-    id: int = Field(
+    scope_id: int = Field(
         default=...,
         title='Internal Scope ID',
-        alias='scope_id'
+        alias='id'
     )
-    name: Optional[str] = Field(
+    scope_name: Optional[str] = Field(
         title='Name of the Scope',
         description='This name should be unique throughout the wohle system to avoid any mix-ups '
                     'with scopes granting a different access to the system',
-        alias='scope_name'
+        alias='name'
     )
-    description: Optional[str] = Field(
+    scope_description: Optional[str] = Field(
         title='Scope description',
-        alias='scope_description'
+        alias='description'
     )
-    value: Optional[str] = Field(
-        alias='scope_value'
+    scope_value: Optional[str] = Field(
+        alias='value'
     )
 
     class Config:
