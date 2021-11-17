@@ -12,8 +12,10 @@ This service offers the possibility to authorize users for frontend end backend
 applications the release package will be known as 1.0 and will have the following
 features:
 
-- [ ] Authorization of Users via HTTP
-- [ ] Issue Refresh Token and use them to receive a new access_token
-- [ ] Check tokens via HTTP
+- [X] Authorization of Users via HTTP
+- [X] Issue Refresh Token and use them to receive a new access_token
+- [X] Check tokens via HTTP
 - [ ] Check tokens via AMQP
-- [ ] Run user related commands
+- [X] Run user related commands
+- [X] Run Scope related commands via HTTP
+- [X] Run Role related commands via HTTP
