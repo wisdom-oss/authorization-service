@@ -17,8 +17,10 @@ from db import DatabaseSession, engine
 from db.crud.user import update_user, get_user_by_id, remove_user, get_users, add_user
 from db.crud.role import (get_role_dict_for_user, get_roles_for_user_as_list,
                           get_roles_for_user_as_object_list)
-from db.crud.scope import (get_refresh_token_scopes_as_list, get_scope, get_scope_dict_for_user,
-                           get_scope_list_for_user, get_scopes_as_dict, get_token_scopes_as_list,
+from db.crud.scope import (add_scope, get_refresh_token_scopes_as_list, get_scope,
+                           get_scope_dict_for_user,
+                           get_scope_list_for_user, get_scopes, get_scopes_as_dict,
+                           get_token_scopes_as_list,
                            get_token_scopes_as_object_list)
 from db.crud.token import (add_refreshed_token, add_token, get_access_token_via_value,
                            get_refresh_token_via_value)
