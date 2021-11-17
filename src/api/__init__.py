@@ -1,5 +1,6 @@
 """Module describing the RESTful API Endpoints"""
 import time
+from typing import List
 
 import sqlalchemy.exc
 from fastapi import Body, Depends, FastAPI, Form, Request, Security
@@ -7,6 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import UJSONResponse
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from passlib.hash import pbkdf2_sha512
+from pydantic import constr, parse_obj_as
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import Response
@@ -294,7 +296,6 @@ async def revoke_token(
             return Response(status_code=200)
     return Response(status_code=status.HTTP_200_OK)
 
-# ===== End of User Routes =====
 
 @auth_service.get(
     path='/users/me'
@@ -419,3 +420,37 @@ async def get_scope_information(
 ):
     scope_information = get_scope(db_session, scope_id)
     return data_models.Scope.from_orm(scope_information)
+
+
+@auth_service.get(
+    path='/scopes'
+)
+async def get_all_scopes(
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"])
+):
+    all_scopes = get_scopes(db_session)
+    scopes = parse_obj_as(List[data_models.Scope], all_scopes)
+    return scopes
+
+
+@auth_service.put(
+    path='/scopes'
+)
+async def add_scope_to_system(
+        db_session: Session = Depends(get_db_session),
+        current_user: data_models.User = Security(get_user, scopes=["admin"]),
+        name: constr(max_length=200, strip_whitespace=True) = Body(...),
+        description: constr(strip_whitespace=True) = Body(...),
+        value: constr(strip_whitespace=True, max_length=150) = Body(...)
+):
+    try:
+        return add_scope(db_session, name, description, value)
+    except sqlalchemy.exc.IntegrityError as error:
+        print(error)
+        return UJSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "error": "Scope already exists",
+            }
+        )

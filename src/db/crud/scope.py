@@ -1,11 +1,10 @@
-import json
-from typing import List, Set
+from typing import Set
 
 from sqlalchemy.orm import Session
 
 import data_models
-from .role import get_roles_for_user
 from db import objects
+from .role import get_roles_for_user
 
 
 def assign_user_to_scope(db: Session, user_id: int, scope_id: int) -> objects.UserScope:
@@ -105,7 +104,7 @@ def get_user_scopes_as_object_list(db: Session, user_id: int):
 def get_token_scopes_as_list(db: Session, token_id: int):
     scope_list = []
     for scope in get_token_scopes_as_object_list(db, token_id):
-        scope_list.append(scope.value)
+        scope_list.append(scope.scope_value)
     return list(set(scope_list))
 
 
@@ -138,3 +137,19 @@ def get_refresh_token_scopes_as_object_list(db: Session, token_id: int):
 
 def get_scope(db: Session, scope_id: int):
     return db.query(objects.Scope).filter(objects.Scope.scope_id == scope_id).first()
+
+
+def get_scopes(db: Session):
+    return db.query(objects.Scope).all()
+
+
+def add_scope(db: Session, name: str, description: str, value: str):
+    _ = objects.Scope(
+        scope_name=name,
+        scope_description=description,
+        scope_value=value
+    )
+    db.add(_)
+    db.commit()
+    db.refresh(_)
+    return data_models.Scope.from_orm(_)
