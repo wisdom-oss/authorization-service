@@ -1,0 +1,879 @@
+openapi: 3.0.3
+info:
+  title: WISdoM 2.0 Authorization Service
+  description: |
+    Reworked authorization service which now is based on Python and [FastAPI by
+    Tiangolo](https://fastapi.tiangolo.com/).
+    Furthermore this service will also be able to validate access
+    tokens via AMQP messages. This feature will not be documented here since
+    there is no real possibility for this. You can read more about this feature
+    in the README.md
+  version: 1.0.0
+
+tags:
+  - name: Login Operations
+  - name: User Operations
+  - name: Scope Operations
+  - name: Role Operations
+
+
+
+components:
+  schemas:
+    Scope:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        desrciption:
+          type: string
+        value:
+          type: string
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Scope'
+      example:
+        id: 5
+        name: Example Role
+        description: This role is an example
+        scopes: []
+
+    User:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          description: ID of the user account
+        firstName:
+          type: string
+          description: First names of the uer
+        lastName:
+          type: string
+          description: Last name(s) of the user
+        username:
+          type: string
+          description: Username for the account
+        last_login:
+          type: integer
+          description: UNIX timestamp of the last logged login
+        roles:
+          type: object
+          description: Map of the roles of the user to the role name
+          additionalProperties:
+            type: string
+        scopes:
+          type: string
+          description: Map of the scopes of the user to the descriptions of the scope
+          additionalProperties:
+            type: string
+      example:
+        user_id: 42
+        firstName: John
+        lastName: Doe
+        username: john.doe
+        password: '**********'
+        last_login: null
+        roles:
+          5: Example Role
+        scopes:
+          me: Read information about the own account
+
+  securitySchemes:
+    authorization:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: /oauth/token
+          refreshUrl: /oauth/token
+          scopes:
+            "admin": Administrate all functions of the system
+            "me": Read account data
+
+paths:
+  /oauth/token:
+    post:
+      summary: Authorize a user via the credentails
+      tags:
+        - Login Operations
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    grant_type:
+                      type: string
+                      description: |
+                        Value MUST be set to "password"
+                      enum:
+                        - password
+                    username:
+                      type: string
+                      description: |
+                        The resource owner username.
+                    password:
+                      type: string
+                      description: |
+                        The resource owner password.
+                    scope:
+                      type: string
+                      description: |
+                        The scope of the access request as described by [RFC6749] Section 3.3.
+                  required:
+                    - grant_type
+                    - username
+                    - password
+                  example:
+                    grant_type: password
+                    username: john.doe
+                    passowrd: johndoe123
+                - type: object
+                  properties:
+                    grant_type:
+                      type: string
+                      enum:
+                        - refresh_token
+                      description: |
+                        Value MUST be set to "refresh_token"
+                    refresh_token:
+                      type: string
+                      description: |
+                        The refresh token issued to the client
+                    scope:
+                      description: |
+                        The scope of the access request as described by [RFC 6749] Section 3.3. The
+                        requested scope MUST NOT include any scope not originally granted by the
+                        resource owner, and if omitted is treated as equal to the scope
+                        originally granted by the resource owner.
+                  required:
+                    - grant_type
+                    - refresh_token
+                  example:
+                    grant_type: refresh_token
+                    refresh_token: d6cfbac4-57cf-40e6-bda9-8d5128432985
+      responses:
+        200:
+          description: The user was authorized successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: |
+                      The access token issued by the authorization server.
+                  token_type:
+                    type: string
+                    enum:
+                      - Bearer
+                      - MAC
+                    description: |
+                      The type of the token issued as described in [RFC6749] Section 7.1.
+                      The Value is case insensitive.
+                  expires_in:
+                    type: integer
+                    default: 3600
+                    description: |
+                      **RECOMMENDED**
+                      The lifetime in seconds of the access token. For example, the value "3600"
+                      denotes that the access token will expire in one hour from the time the
+                      response was generated. If omitted, the authorization server SHOULD provide
+                      the expiration time via other means or document the default value.
+                  refresh_token:
+                    type: string
+                    description: |
+                      The refresh token, which can be used to obtain new access tokens using the
+                      same authorization grant as described in [RFC 6749] Section 6.
+                      **NOTE:** The refresh tokens have a lifetime of 7 days (604800 seconds).
+                      After this time period a new access and refresh token needs to be requested
+                      . This is due to security concerns
+                  scope:
+                    type: string
+                    description: |
+                      OPTIONAL, if identical to the scope requested by the client; otherwise,
+                      REQUIRED.  The scope of the access token as described by Section 3.3.
+                required:
+                  - access_token
+                  - token_type
+                example:
+                  access_token: 0a9f925c-c567-4ea3-af7d-6655ef0ed710
+                  token_type: bearer
+                  expires_in: 3600
+                  refresh_token: d6cfbac4-57cf-40e6-bda9-8d5128432985
+                  scope: me
+        400:
+          description: Bad request made
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - invalid_request
+                      - invalid_client
+                      - invalid_grant
+                      - unauthorized_client
+                      - unsupported_grant_type
+                      - invalid_scope
+                    description: >
+                      Error codes compliant to the RFC standard:
+                       * `invalid_request` - The request is missing a required parameter, includes
+                      an unsupported parameter value (other than grant type), repeats parameter,
+                      includes multiple credentials, utilizes more than one mechanism for
+                      authenticating the client, or is otherwise malformed.
+                       * `invalid_grant` - The provided authorization grant (e.g., authorization
+                      code, resource owner credentials) or refresh token is invalid, expired,
+                      revoked, does not match the redirection URI used in the authorization
+                      request, or was issued to another client.
+                       * `unauthorized_client` - The authenticated client is not authorized to
+                      use this authorization grant type.
+                       * `unsupported_grant_type` - The authorization grant type is not supported
+                      by the authorization server.
+                       * `invalid_scope` - he requested scope is invalid, unknown, malformed, or
+                      exceeds the scope granted by the resource owner.
+                  error_description:
+                    type: string
+                    description: Additional information on the error
+                  error_uri:
+                    type: string
+                    description: URI pointing to the documentation if it is available
+                required:
+                  - error
+                example:
+                  error: invalid_request
+                  error_description: The request contains multiple credentials
+                  error_uri: https://example.com
+        401:
+          description: Unauthorized
+          headers:
+            WWW-Authenticate:
+              description: |
+                Header specifying how to authorize at the system
+              schema:
+                type: string
+
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum:
+                      - invalid_client
+                    description: >
+                      * `invalid_client` - Client authentication failed (e.g., unknown client, no
+                      client authentication included, or unsupported authentication method). The
+                      authorization server MAY return an HTTP 401 (Unauthorized) status code to
+                      indicate which HTTP authentication schemes are supported.  If the client
+                      attempted to authenticate via the "Authorization" request header field, the
+                      authorization server MUST respond with an HTTP 401 (Unauthorized) status
+                      code and include the "WWW-Authenticate" response header field matching the
+                      authentication scheme used by the client.
+  /oauth/check_token:
+    post:
+      tags:
+        - Login Operations
+      summary: Check a token for validity
+      description: |
+        There may be a rate-limit imposed on this endpoint to stop brute-forcing the system for a
+        valid token to gain access.
+      security:
+        - authorization:
+            - admin
+            - me
+      responses:
+        200:
+          description: Introspection Result of the Token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                    description: |
+                      Boolean indicator of whether or not the presented token is currently
+                      active. The specifics of a token's "active" state will vary depending on
+                      the implementation of the authorization server and the information it keeps
+                      about its tokens, but a "true" value return for the "active" property
+                      will generally indicate that a given token has been issued by this
+                      authorization server, has not been revoked by the resource owner, and is
+                      within its given time window of validity (e.g., after its issuance time and
+                      before its expiration time).
+                  scope:
+                    type: string
+                    description: |
+                      A JSON string containing a space-separated list of scopes associated with
+                      this token, in the format described in Section 3.3 of OAuth 2.0 [RFC6749].
+                  username:
+                    type: string
+                    description: |
+                      Human-readable identifier for the resource owner who authorized this token.
+                  token_type:
+                    type: string
+                    description: |
+                      Type of the token as defined in Section 5.1 of OAuth 2.0 [RFC6749].
+                  exp:
+                    type: integer
+                    description: |
+                      Integer timestamp, measured in the number of seconds since January 1 1970
+                      UTC, indicating when this token will expire, as defined in JWT [RFC7519].
+                  iat:
+                    type: integer
+                    description: |
+                      Integer timestamp, measured in the number of seconds since January 1 1970
+                      UTC, indicating when this token was originally issued, as defined in JWT
+                      [RFC7519].
+              examples:
+                active_token:
+                  value:
+                    active: true
+                    scope: me
+                    username: john.doe
+                    token_type: access_token
+                    exp: 1640386799
+                    iat: 1640383199
+                inactive_token:
+                  value:
+                    active: false
+  /oauth/revoke:
+    post:
+      summary: Revoke an active token
+      description: >
+        Via this path you can revoke an already issued access token or refresh token. The server
+        will not return any errors if the token is not found on this system, since it cannot be
+        deactivated. For more information please refer to the RFC6749. If you revoke an access
+        token, the refresh_token associated to this refresh_token will also be revoked. If you
+        revoke a refresh token all access tokens associated with this refresh token will be
+        revoked too.
+
+
+        **NOTE:** As a user with the scope "admin" you may revoke the tokens of other users.
+        Please use this action carefully.
+      tags:
+        - Login Operations
+      security:
+        - authorization:
+            - '*'
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: |
+                    The token that the client wants to get revoked.
+
+                token_type_hint:
+                  type: string
+                  description: |
+                    **OPTIONAL:**
+                    A hint about the type of the token submitted for revocation.  Clients MAY
+                    pass this parameter in order to help the authorization server to optimize the
+                    token lookup.  If the server is unable to locate the token using the given
+                    hint, it MUST extend its search across all of its supported token types.  An
+                    authorization server MAY ignore this parameter, particularly if it is able to
+                    detect the token type automatically.  This specification defines two such
+                    values:
+                      * access_token: An access token as defined in [RFC6749], Section 1.4
+                      * refresh_token: An refresh token as defined in [RFC6749], Section 1.5
+              required:
+                - token
+      responses:
+        200:
+          description: Standard response
+        403:
+          description: The scope of the current user is insufficient
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  error_description:
+                    type: string
+                    description: Additional information on the error
+                  error_uri:
+                    type: string
+                    description: URI pointing to the documentation if it is available
+                required:
+                  - error
+                example:
+                  error: insufficient_scope
+                  error_description: The scope currently assigned to the user is not valid for
+                    the requested operation
+
+  /users:
+    get:
+      tags:
+        - User Operations
+      summary: Get all users in the System
+      security:
+        - authorization:
+            - admin:*
+      responses:
+        200:
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+    put:
+      tags:
+        - User Operations
+      summary: Create a new user
+      description: |
+        When sending a request all inputs will be stripped of trailing and leading whitespaces.
+        The only field exempt from this is the password.
+      security:
+        - authorization:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                username:
+                  type: string
+                password:
+                  type: string
+                scopes:
+                  type: array
+                  description: Array with the scope ids granted to the user
+                  default: [1]
+                  items:
+                    type: integer
+                roles:
+                  type: array
+                  description: Array with the role ids the user is assigned to
+                  default: []
+                  items:
+                    type: integer
+              required:
+                - firstName
+                - lastName
+                - username
+                - password
+      responses:
+        201:
+          description: The user was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        409:
+          description: A user with the same data already exsists
+    patch:
+      tags:
+        - User Operations
+      summary: Update the information of a user
+      security:
+        - authorization:
+            - admin:*
+            - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                username:
+                  type: string
+                last_login:
+                  type: integer
+                roles:
+                  type: array
+                  items:
+                    type: integer
+                scopes:
+                  type: string
+              example:
+                user_id: 42
+                firstName: John
+                lastName: Doe
+                username: john.doe
+                last_login: null
+                roles: [1]
+                scopes: me admin
+      responses:
+        204:
+          description: Successfully updated the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        403:
+          description: Insufficient privileges to update the users
+        404:
+          description: The user does not exist and therefore cannot be updated
+  /users/me:
+    get:
+      tags:
+        - User Operations
+      summary: Get informations about the current user
+      security:
+        - authorization:
+            - me
+      responses:
+        200:
+          description: Information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    patch:
+      tags:
+        - User Operations
+      summary: Update the password of the logged in user
+      security:
+        - authorization:
+            - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+      responses:
+        200:
+          description: Successfully updated the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        description: User ID of the user to be pulled
+    get:
+      summary: Get informations about a user
+      security:
+        - authorization:
+            - admin
+      tags:
+        - User Operations
+      responses:
+        200:
+          description: Information about the User
+          content:
+            application/json:
+              schema:
+               $ref: '#/components/schemas/User'
+        404:
+         description: The user does not exist in the system
+
+    delete:
+      summary: Delete a User from the system
+      security:
+        - authorization:
+            - admin
+      tags:
+        - User Operations
+      responses:
+        200:
+          description: The user was deleted
+        403:
+          description: Insufficient privilieges to run this action
+        404:
+          description: The user does not exist in the system
+
+  /scopes:
+    get:
+      summary: Get all Scopes in the System
+      tags:
+        - Scope Operations
+      security:
+        - authorization:
+            - admin
+      responses:
+        200:
+          description: All Scopes with all their data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges to run this action
+    put:
+      summary: Create a new scope in the system
+      tags:
+        - Scope Operations
+      security:
+        - authorization:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the new scope
+                description:
+                  type: string
+                  description: Description of the new scope
+                value:
+                  type: string
+                  description: Value used to identify scope in scope strings
+              required:
+                - name
+                - description
+                - value
+              example:
+                name: Example Scope
+                description: This is a examplatory scope
+                value: example
+      responses:
+        200:
+          description: Successfully created the scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges to run this action
+        409:
+          description: The scope already exists in the system
+
+    patch:
+      summary: Update a scope in the system
+      tags:
+        - Scope Operations
+      security:
+        - authorization:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Scope'
+      responses:
+        200:
+          description: Successfully updated the scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges to run this action
+        404:
+          description: The scope does not exist and therefore a update is not possible
+
+  /scopes/{id}:
+    parameters:
+      - in: path
+        name: id
+        description: ID of the scope which shall be worked with
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get informations about the specified scope
+      security:
+        - authorization:
+            - 'admin'
+      tags:
+        - Scope Operations
+      responses:
+        200:
+          description: The scope object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges to run this action
+        404:
+          description: The scope does not exsist
+
+
+
+    delete:
+      summary: Delete a scope in the system
+      tags:
+        - Scope Operations
+      security:
+        - authorization:
+          - admin
+      responses:
+        201:
+          description: Successfully deleted the scope
+        403:
+          description: Insufficient privilieges to run this action
+        404:
+          description: The scope does not exsist and therefore cannot be deleted
+
+  /roles:
+    get:
+      summary: Get all Roles in the System
+      tags:
+        - Role Operations
+      security:
+        - authorization:
+            - admin
+      responses:
+        200:
+          description: All Role with all their data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scope'
+    put:
+      summary: Create a new role in the system
+      tags:
+        - Role Operations
+      security:
+        - authorization:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the new role
+                description:
+                  type: string
+                  description: Description of the new role
+                scopes:
+                  type: string
+                  description: Scope string of scopes which is assigned to every user with this role
+              required:
+                - name
+                - description
+                - scopes
+      responses:
+        201:
+          description: Successfully created the new scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        403:
+          description: Insufficient privileges
+        409:
+          description: The role already exists in the system
+
+    patch:
+      summary: Update a role in the system
+      tags:
+        - Role Operations
+      security:
+        - authorization:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Changed name of the role
+                description:
+                  type: string
+                  description: Changed description of the role
+                scopes:
+                  type: string
+                  description: Scope string of scopes which is assigned to every user with this role
+      responses:
+        200:
+          description: Successfully updated the role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        403:
+          description: Insufficient privilieges
+        404:
+          description: The role does not exsist and therefore cannot be updated
+
+  /roles/{id}:
+    parameters:
+      - in: path
+        name: id
+        description: ID of the role which shall be worked with
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get informations about the specified role
+      security:
+        - authorization:
+            - 'admin'
+      tags:
+        - Role Operations
+      responses:
+        200:
+          description: The role object and all assigned users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges
+        404:
+          description: The role does not exsist
+    delete:
+      summary: Delete the specified role from the system
+      tags:
+        - Role Operations
+      security:
+        - authorization:
+            - admin
+      responses:
+        204:
+          description: Successfully deleted the role
+        403:
+          description: Insufficient privilieges
+        404:
+          description: The role does not exist and therefore cannot be deleted

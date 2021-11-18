@@ -1,67 +1,72 @@
+import random
 from typing import List, Optional
 
 from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
+from api.exceptions import ObjectNotFoundException
 from .role import assign_user_to_role
-from ..objects import user
-from passlib.hash import bcrypt_sha256
+from passlib.hash import pbkdf2_sha512
 from db.crud.scope import assign_user_to_scope
 
 import data_models
-from ..objects.user import UserRole, UserScope
+from db import objects
 
 
-def get_user_by_id(db: Session, user_id: int) -> Optional[user.User]:
+def get_user_by_id(db: Session, user_id: int) -> Optional[objects.User]:
     """Get a ORM user object by the user id.
 
     :param db: Database Session which will be used to connect to the database
     :param user_id: ID of the user
     :return: If there is no user with the given id None will be returned
     """
-    return db.query(user.User).filter(user.User.user_id == user_id).first()
+    return db.query(objects.User).filter(objects.User.user_id == user_id).first()
 
 
-def get_user_by_username(db: Session, username: str) -> Optional[user.User]:
+def get_user_by_username(db: Session, username: str) -> Optional[objects.User]:
     """Get a ORM user object by the username
 
     :param db: Database Session which will be used to connect to the database
     :param username: Username of the user
     :return: The user or if there is no user by this username None
     """
-    return db.query(user.User).filter(user.User.username == username).first()
+    return db.query(objects.User).filter(objects.User.username == username).first()
 
 
-def get_users(db: Session) -> List[user.User]:
+def get_users(db: Session) -> List[objects.User]:
     """Get all users in the database
 
     :param db: Session which will be used to connect to the database
     :return: List of users
     """
-    return db.query(user.User).all()
+    return db.query(objects.User).all()
 
 
-def add_user(db: Session, new_user: data_models.User) -> user.User:
+def add_user(db: Session, new_user: data_models.NewUser) -> objects.User:
     """Add a new user to the database
 
     :param new_user: The user which shall be inserted
     :param db: Database session
     :return: Database ORM user
     """
-    _password_hash = bcrypt_sha256.hash(new_user.password)
-    db_user = user.User(
-        first_name=new_user.first_name,
-        last_name=new_user.last_name,
-        username=new_user.username,
+    _password_hash = pbkdf2_sha512.hash(
+        new_user.password.get_secret_value(),
+        salt_size=random.randint(32, 1024)
+    )
+    db_user = objects.User(
+        first_name=new_user.first_name.strip(),
+        last_name=new_user.last_name.strip(),
+        username=new_user.username.strip(),
         password=_password_hash,
         is_active=True
     )
     db.add(db_user)
     db.commit()
-    for scope in new_user.scopes:
-        assign_user_to_scope(db, scope.id, db_user.user_id)
+    db.refresh(db_user)
+    for scope in new_user.scopes.split(" "):
+        assign_user_to_scope(db, db_user.user_id, scope)
     for role in new_user.roles:
-        assign_user_to_role(db, db_user.user_id, role.id)
+        assign_user_to_role(db, db_user.user_id, role)
     # Refresh the user after assigning the scopes and roles
     db.refresh(db_user)
     return db_user
@@ -74,12 +79,13 @@ def remove_user(db: Session, user_id: int):
     :param user_id: ID of the User which shall be removed
     :return:
     """
-    db_user = db.query(user.User).filter(user.User.user_id == user_id).first()
-    db.delete(db_user)
-    db.commit()
+    db_user = db.query(objects.User).filter(objects.User.user_id == user_id).first()
+    if db_user is not None:
+        db.delete(db_user)
+        db.commit()
 
 
-def update_user(db: Session, user_id: int, **new_values) -> user.User:
+def update_user(db: Session, user_id: int, **new_values) -> objects.User:
     """Update a user account
 
     :param db: Database session
@@ -89,38 +95,35 @@ def update_user(db: Session, user_id: int, **new_values) -> user.User:
         When passing scopes or roles all scopes or roles need to be passed to the function.
     :return: The updated user
     """
-    if 'first_name' in new_values:
-        db.execute(
-            update(user.User).
-            where(user.User.user_id == user_id).
-            values(first_name=new_values.get('first_name'))
+    _user = get_user_by_id(db, user_id)
+    if _user is None:
+        raise ObjectNotFoundException()
+    print(_user.username)
+    print(new_values)
+    if 'first_name' in new_values and new_values['first_name'].strip() != "":
+        _user.first_name = new_values['first_name'].strip()
+    if 'last_name' in new_values and new_values['last_name'].strip() != "":
+        _user.last_name = new_values['last_name'].strip()
+    if 'username' in new_values and new_values['username'].strip() != "":
+        _user.username = new_values['username'].strip()
+    if 'password' in new_values and new_values['password'].strip() != "":
+        _password_hash = pbkdf2_sha512.hash(
+            new_values['password'],
+            salt_size=random.randint(32, 1024)
         )
-    if 'last_name' in new_values:
-        db.execute(
-            update(user.User).
-            where(user.User.user_id == user_id).
-            values(last_name=new_values.get('last_name'))
-        )
-    if 'username' in new_values:
-        db.execute(
-            update(user.User).
-            where(user.User.user_id == user_id).
-            values(username=new_values.get('username'))
-        )
-    if 'password' in new_values:
-        _password_hash = bcrypt_sha256.hash(new_values.get('password'))
-        db.execute(
-            update(user.User).
-            where(user.User.user_id == user_id).
-            values(password=_password_hash)
-        )
-    if 'scopes' in new_values:
-        db.query(delete(UserScope).where(UserScope.user_id == user_id))
-        for scope in new_values.get('scopes'):
-            assign_user_to_scope(db, user_id, scope.id)
-    if 'roles' in new_values:
-        db.query(delete(UserRole).where(UserRole.user_id == user_id))
+        _user.password = _password_hash
+    if 'scopes' in new_values and new_values["scopes"] is not None:
+        db.query(objects.UserScope).filter(objects.UserScope.user_id == user_id).delete()
+        db.commit()
+        for scope in new_values.get('scopes').split(" "):
+            assign_user_to_scope(db, user_id, scope)
+            db.commit()
+    if 'roles' in new_values and new_values["roles"] is not None:
+        db.query(objects.UserRole).filter(objects.UserRole.user_id == user_id).delete()
+        db.commit()
         for role in new_values.get('roles'):
             assign_user_to_role(db, user_id, role.id)
+    # Commit the changes made to the database
+    db.commit()
     # Return the updated user
-    return db.query(user.User).filter(user.User.user_id == user_id).first()
+    return db.query(objects.User).filter(objects.User.user_id == user_id).first()
