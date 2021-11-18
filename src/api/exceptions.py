@@ -14,3 +14,8 @@ class AuthorizationException(Exception):
         self.status_code = status_code
         self.optional_data = optional_data
         self.error_description = error_description
+
+
+class ObjectNotFoundException(Exception):
+    def __init__(self):
+        pass

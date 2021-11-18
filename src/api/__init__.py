@@ -1,6 +1,6 @@
 """Module describing the RESTful API Endpoints"""
 import time
-from typing import List, Set
+from typing import List
 
 import sqlalchemy.exc
 from fastapi import Body, Depends, FastAPI, Form, Request, Security
@@ -16,7 +16,6 @@ from starlette.responses import Response
 import data_models
 import db.crud.user
 from db import DatabaseSession, engine
-from db.crud.user import update_user, get_user_by_id, remove_user, get_users, add_user
 from db.crud.role import (add_role, get_role_dict_for_user, get_role_information, get_roles,
                           get_roles_for_user_as_list,
                           get_roles_for_user_as_object_list, update_role)
@@ -27,9 +26,10 @@ from db.crud.scope import (add_scope, get_refresh_token_scopes_as_list, get_scop
                            get_token_scopes_as_object_list, update_scope)
 from db.crud.token import (add_refreshed_token, add_token, get_access_token_via_value,
                            get_refresh_token_via_value)
-from db.crud.user import get_user_by_username
+from db.crud.user import add_user, get_user_by_id, get_user_by_username, get_users, remove_user, \
+    update_user
 from .dependencies import CustomizedOAuth2PasswordRequestForm, get_db_session
-from .exceptions import AuthorizationException
+from .exceptions import AuthorizationException, ObjectNotFoundException
 
 # Initialize all database connections
 db.TableBase.metadata.create_all(bind=engine)
@@ -71,7 +71,7 @@ async def get_user(
                 status.HTTP_401_UNAUTHORIZED,
                 optional_data=f"scope={security_scopes.scope_str}"
             )
-    _user = data_models.User.from_orm(user_data)
+    _user = data_models.BaseUser.from_orm(user_data)
     _user.scopes = get_token_scopes_as_object_list(db_session, token_data.token_id)
     _user.roles = get_roles_for_user_as_object_list(db_session, user_data.user_id)
     return _user
@@ -79,7 +79,7 @@ async def get_user(
 
 # ===== EXCEPTION HANDLERS =====
 @auth_service.exception_handler(AuthorizationException)
-async def authorization_exception_handler(request: Request, exc: AuthorizationException):
+async def authorization_exception_handler(_request: Request, exc: AuthorizationException):
     if exc.error_description is None:
         return UJSONResponse(
             status_code=exc.status_code,
@@ -103,8 +103,15 @@ async def authorization_exception_handler(request: Request, exc: AuthorizationEx
         )
 
 
+@auth_service.exception_handler(ObjectNotFoundException)
+async def object_not_found_exception_handler(_request: Request, _exc: ObjectNotFoundException):
+    return Response(
+        status_code=status.HTTP_404_NOT_FOUND
+    )
+
+
 @auth_service.exception_handler(RequestValidationError)
-async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
+async def request_validation_exception_handler(_request: Request, exc: RequestValidationError):
     return UJSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content={
@@ -200,7 +207,7 @@ async def login(
 )
 async def check_token(
         db_session: Session = Depends(get_db_session),
-        user: data_models.User = Security(get_user),
+        _current_user: data_models.BaseUser = Security(get_user),
         token: str = Form(...)
 ):
     # Check the access_token table for a token with the value
@@ -244,14 +251,14 @@ async def check_token(
     path='/oauth/revoke'
 )
 async def revoke_token(
-        user: data_models.User = Security(get_user, scopes=["me"]),
+        user: data_models.BaseUser = Security(get_user, scopes=["me"]),
         db_session: Session = Depends(get_db_session),
         token: str = Form(...)
 ):
     # Get information about the token, starting with the refresh_tokens
     token_info = get_refresh_token_via_value(db_session, token)
     # Check if the token is owned by the current user
-    if token_info.access_token_assignment[0].access_token.user[0].user_id == user.id:
+    if token_info.access_token_assignment[0].access_token.user[0].user_id == user.user_id:
         if token_info is not None:
             for assignment in token_info.access_token_assignment:
                 assignment.access_token.active = False
@@ -294,12 +301,12 @@ async def revoke_token(
     path='/users/me'
 )
 def get_user_information(
-        user: data_models.User = Security(get_user, scopes=["me"]),
+        user: data_models.BaseUser = Security(get_user, scopes=["me"]),
         db_session: Session = Depends(get_db_session)
 ):
     _user = user
-    _user.scopes = get_scope_list_for_user(db_session, user.id)
-    _user.roles = get_roles_for_user_as_list(db_session, user.id)
+    _user.scopes = get_scope_dict_for_user(db_session, user.user_id)
+    _user.roles = get_role_dict_for_user(db_session, user.user_id)
     return _user
 
 
@@ -307,13 +314,16 @@ def get_user_information(
     path='/users/me'
 )
 def update_current_user(
-        user: data_models.User = Security(get_user, scopes=["me"]),
+        user: data_models.BaseUser = Security(get_user, scopes=["me"]),
         db_session: Session = Depends(get_db_session),
         password: str = Body(..., embed=True)
 ):
-    _user = update_user(db_session, user.id, password=password)
+    _user = update_user(db_session, user.user_id, password=password)
     if pbkdf2_sha512.verify(password, _user.password):
-        return Response(status_code=status.HTTP_200_OK)
+        updated_user = data_models.BaseUser.from_orm(_user)
+        updated_user.roles = get_role_dict_for_user(db_session, updated_user.user_id)
+        updated_user.scopes = get_scope_dict_for_user(db_session, updated_user.user_id)
+        return updated_user
     else:
         return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -322,7 +332,7 @@ def update_current_user(
     path='/users/{user_id}'
 )
 async def get_user_information(
-        user_id: int, current_user=Security(get_user, scopes=["admin"]), db_session: Session =
+        user_id: int, _current_user=Security(get_user, scopes=["admin"]), db_session: Session =
         Depends(get_db_session)
 ):
     user_data = get_user_by_id(db_session, user_id)
@@ -333,23 +343,10 @@ async def get_user_information(
                 "error": "no_such_user"
             }
         )
-    _user = data_models.User.from_orm(user_data)
-    _user.roles = get_roles_for_user_as_list(db_session, user_data.user_id)
-    _user.scopes = get_scope_list_for_user(db_session, user_data.user_id)
+    _user = data_models.BaseUser.from_orm(user_data)
+    _user.roles = get_role_dict_for_user(db_session, user_data.user_id)
+    _user.scopes = get_scope_dict_for_user(db_session, user_data.user_id)
     return _user
-
-
-@auth_service.patch(
-    path='/users/{user_id}'
-)
-async def update_user_information(
-        user_id: int,
-        current_user=Security(get_user, scopes=["admin"]),
-        db_session: Session = Depends(get_db_session),
-        new_user_information=Body(...)
-):
-    _user = update_user(db_session, user_id, **new_user_information)
-    return Response(status_code=status.HTTP_200_OK)
 
 
 @auth_service.delete(
@@ -357,7 +354,7 @@ async def update_user_information(
 )
 async def delete_user(
         user_id: int,
-        current_user=Security(get_user, scopes=["admin"]),
+        _current_user=Security(get_user, scopes=["admin"]),
         db_session: Session = Depends(get_db_session)
 ):
     remove_user(db_session, user_id)
@@ -368,14 +365,14 @@ async def delete_user(
     path='/users'
 )
 async def get_all_users(
-        current_user=Security(get_user, scopes=["admin"]),
+       _current_user=Security(get_user, scopes=["admin"]),
         db_session: Session = Depends(get_db_session)
 ):
     users = get_users(db_session)
-    user_list = parse_obj_as(List[data_models.User], users)
+    user_list = parse_obj_as(List[data_models.BaseUser], users)
     for user in user_list:
-        user.scopes = get_scope_dict_for_user(db_session, user.id)
-        user.roles = get_role_dict_for_user(db_session, user.id)
+        user.scopes = get_scope_dict_for_user(db_session, user.user_id)
+        user.roles = get_role_dict_for_user(db_session, user.user_id)
     return user_list
 
 
@@ -383,13 +380,13 @@ async def get_all_users(
     path='/users'
 )
 async def add_user_to_system(
-        current_user=Security(get_user, scopes=["admin"]),
+       _current_user=Security(get_user, scopes=["admin"]),
         db_session: Session = Depends(get_db_session),
         new_user: data_models.NewUser = Body(...)
 ):
     try:
         user = add_user(db_session, new_user)
-        _user = data_models.User.from_orm(user)
+        _user = data_models.BaseUser.from_orm(user)
         _user.scopes = get_scope_dict_for_user(db_session, user.user_id)
         _user.roles = get_role_dict_for_user(db_session, user.user_id)
         return _user
@@ -403,13 +400,28 @@ async def add_user_to_system(
         )
 
 
+@auth_service.patch(
+    path='/users'
+)
+async def update_user_information(
+        _current_user=Security(get_user, scopes=["admin"]),
+        db_session: Session = Depends(get_db_session),
+        new_user_information: data_models.UserUpdate = Body(...)
+):
+    _user = update_user(db_session, **new_user_information.dict(exclude_none=True))
+    updated_user = data_models.BaseUser.from_orm(_user)
+    updated_user.roles = get_role_dict_for_user(db_session, updated_user.user_id)
+    updated_user.scopes = get_scope_dict_for_user(db_session, updated_user.user_id)
+    return updated_user
+
+
 @auth_service.get(
     path='/scopes/{scope_id}'
 )
 async def get_scope_information(
         scope_id: int,
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"])
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"])
 ):
     scope_information = get_scope(db_session, scope_id)
     return data_models.Scope.from_orm(scope_information)
@@ -421,7 +433,7 @@ async def get_scope_information(
 async def delete_scope(
         scope_id: int,
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"])
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"])
 ):
     scope = get_scope(db_session, scope_id)
     if scope is not None:
@@ -435,7 +447,7 @@ async def delete_scope(
 )
 async def get_all_scopes(
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"])
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"])
 ):
     all_scopes = get_scopes(db_session)
     scopes = parse_obj_as(List[data_models.Scope], all_scopes)
@@ -447,7 +459,7 @@ async def get_all_scopes(
 )
 async def add_scope_to_system(
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"]),
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"]),
         name: constr(max_length=200, strip_whitespace=True) = Body(...),
         description: constr(strip_whitespace=True) = Body(...),
         value: constr(strip_whitespace=True, max_length=150) = Body(...)
@@ -469,7 +481,7 @@ async def add_scope_to_system(
 )
 async def update_scopes(
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"]),
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"]),
         scope_data: data_models.Scope = Body(...)
 ):
     return update_scope(db_session, **scope_data.dict())
@@ -481,13 +493,13 @@ async def update_scopes(
 async def get_role(
         role_id: int,
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"])
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"])
 ):
     _ = get_role_information(db_session, role_id)
     if _ is None:
         return Response(status_code=status.HTTP_404_NOT_FOUND)
     role = data_models.Role.from_orm(_)
-    role.scopes = get_scopes_for_role(db_session, role.role_id)
+    role.role_scopes = get_scopes_for_role(db_session, role.role_id)
     return role
 
 
@@ -497,7 +509,7 @@ async def get_role(
 async def delete_role(
         role_id: int,
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"])
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"])
 ):
     role = get_role_information(db_session, role_id)
     if role is not None:
@@ -511,12 +523,12 @@ async def delete_role(
 )
 async def get_all_roles(
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"])
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"])
 ):
     _ = get_roles(db_session)
     roles = parse_obj_as(List[data_models.Role], _)
     for role in roles:
-        role.scopes = get_scopes_for_role(db_session, role.role_id)
+        role.role_scopes = get_scopes_for_role(db_session, role.role_id)
     return roles
 
 
@@ -525,7 +537,7 @@ async def get_all_roles(
 )
 async def add_role_to_system(
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"]),
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"]),
         name: constr(max_length=200, strip_whitespace=True) = Body(...),
         description: constr(strip_whitespace=True) = Body(...),
         scopes: str = Body("")
@@ -547,7 +559,7 @@ async def add_role_to_system(
 )
 async def add_role_to_system(
         db_session: Session = Depends(get_db_session),
-        current_user: data_models.User = Security(get_user, scopes=["admin"]),
+        _current_user: data_models.BaseUser = Security(get_user, scopes=["admin"]),
         role: data_models.Role = Body(...)
 ):
     updated_role = data_models.Role.from_orm(update_role(db_session, **role.dict()))

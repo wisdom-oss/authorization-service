@@ -20,79 +20,76 @@ tags:
 
 components:
   schemas:
-    Role:
-      type: object
-      properties:
-        roleId:
-          type: integer
-        roleName:
-          type: string
-        roleDescription:
-          type: string
-        includedScopes:
-          type: array
-          items:
-            type: integer
     Scope:
       type: object
       properties:
-        scopeId:
+        id:
           type: integer
-        scopeName:
+        name:
           type: string
-        scopeDescription:
+        desrciption:
           type: string
-        scopeValue:
+        value:
           type: string
-    User:
+    Role:
       type: object
       properties:
-        firstName:
+        id:
+          type: integer
+        name:
           type: string
-        lastName:
+        description:
           type: string
-        username:
-          type: string
-        roles:
-          type: array
-          items:
-            type: integer
         scopes:
           type: array
           items:
-            type: integer
-      required:
-        - firstName
-        - lastName
-        - username
-        - password
-    FullUserData:
+            $ref: '#/components/schemas/Scope'
+      example:
+        id: 5
+        name: Example Role
+        description: This role is an example
+        scopes: []
+
+    User:
       type: object
-      allOf:
-        - $ref: '#/components/schemas/User'
-        - type: object
-          properties:
-            lastLogin:
-              type: string
-            permanentTokens:
-              type: array
-              items:
-                type: object
-                properties:
-                  token:
-                    type: string
-                  created_at:
-                    type: integer
-                  has_expiration:
-                    type: boolean
-                  expires:
-                    type: integer
-                required:
-                  - token
-                  - created_at
-                  - has_expiration
-            scopes:
-              type: string
+      properties:
+        user_id:
+          type: integer
+          description: ID of the user account
+        firstName:
+          type: string
+          description: First names of the uer
+        lastName:
+          type: string
+          description: Last name(s) of the user
+        username:
+          type: string
+          description: Username for the account
+        last_login:
+          type: integer
+          description: UNIX timestamp of the last logged login
+        roles:
+          type: object
+          description: Map of the roles of the user to the role name
+          additionalProperties:
+            type: string
+        scopes:
+          type: string
+          description: Map of the scopes of the user to the descriptions of the scope
+          additionalProperties:
+            type: string
+      example:
+        user_id: 42
+        firstName: John
+        lastName: Doe
+        username: john.doe
+        password: '**********'
+        last_login: null
+        roles:
+          5: Example Role
+        scopes:
+          me: Read information about the own account
+
   securitySchemes:
     authorization:
       type: oauth2
@@ -217,6 +214,7 @@ paths:
                   token_type: bearer
                   expires_in: 3600
                   refresh_token: d6cfbac4-57cf-40e6-bda9-8d5128432985
+                  scope: me
         400:
           description: Bad request made
           content:
@@ -343,6 +341,18 @@ paths:
                       Integer timestamp, measured in the number of seconds since January 1 1970
                       UTC, indicating when this token was originally issued, as defined in JWT
                       [RFC7519].
+              examples:
+                active_token:
+                  value:
+                    active: true
+                    scope: me
+                    username: john.doe
+                    token_type: access_token
+                    exp: 1640386799
+                    iat: 1640383199
+                inactive_token:
+                  value:
+                    active: false
   /oauth/revoke:
     post:
       summary: Revoke an active token
@@ -391,6 +401,27 @@ paths:
       responses:
         200:
           description: Standard response
+        403:
+          description: The scope of the current user is insufficient
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  error_description:
+                    type: string
+                    description: Additional information on the error
+                  error_uri:
+                    type: string
+                    description: URI pointing to the documentation if it is available
+                required:
+                  - error
+                example:
+                  error: insufficient_scope
+                  error_description: The scope currently assigned to the user is not valid for
+                    the requested operation
 
   /users:
     get:
@@ -408,7 +439,8 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/FullUserData'
+                  $ref: '#/components/schemas/User'
+
     put:
       tags:
         - User Operations
@@ -423,18 +455,91 @@ paths:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '#/components/schemas/User'
-                - type: object
-                  properties:
-                    password:
-                      type: string
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                username:
+                  type: string
+                password:
+                  type: string
+                scopes:
+                  type: array
+                  description: Array with the scope ids granted to the user
+                  default: [1]
+                  items:
+                    type: integer
+                roles:
+                  type: array
+                  description: Array with the role ids the user is assigned to
+                  default: []
+                  items:
+                    type: integer
               required:
+                - firstName
+                - lastName
+                - username
                 - password
       responses:
         201:
           description: The user was created successfully
-
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        409:
+          description: A user with the same data already exsists
+    patch:
+      tags:
+        - User Operations
+      summary: Update the information of a user
+      security:
+        - authorization:
+            - admin:*
+            - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                username:
+                  type: string
+                last_login:
+                  type: integer
+                roles:
+                  type: array
+                  items:
+                    type: integer
+                scopes:
+                  type: string
+              example:
+                user_id: 42
+                firstName: John
+                lastName: Doe
+                username: john.doe
+                last_login: null
+                roles: [1]
+                scopes: me admin
+      responses:
+        204:
+          description: Successfully updated the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        403:
+          description: Insufficient privileges to update the users
+        404:
+          description: The user does not exist and therefore cannot be updated
   /users/me:
     get:
       tags:
@@ -442,14 +547,15 @@ paths:
       summary: Get informations about the current user
       security:
         - authorization:
-            - '*'
+            - me
       responses:
         200:
           description: Information
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FullUserData'
+                $ref: '#/components/schemas/User'
+
     patch:
       tags:
         - User Operations
@@ -468,6 +574,11 @@ paths:
       responses:
         200:
           description: Successfully updated the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
   /users/{id}:
     parameters:
       - in: path
@@ -480,7 +591,7 @@ paths:
       summary: Get informations about a user
       security:
         - authorization:
-            - '*'
+            - admin
       tags:
         - User Operations
       responses:
@@ -489,7 +600,9 @@ paths:
           content:
             application/json:
               schema:
-               $ref: '#/components/schemas/FullUserData'
+               $ref: '#/components/schemas/User'
+        404:
+         description: The user does not exist in the system
 
     delete:
       summary: Delete a User from the system
@@ -501,41 +614,11 @@ paths:
       responses:
         200:
           description: The user was deleted
-    patch:
-      tags:
-        - User Operations
-      summary: Update the information of a user
-      security:
-        - authorization:
-            - admin:*
-            - me
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                userId:
-                  type: integer
-                firstName:
-                  type: string
-                lastName:
-                  type: string
-                password:
-                  type: string
-                roles:
-                  type: array
-                  items:
-                    type: integer
-                scopes:
-                  type: array
-                  items:
-                    type: integer
-      responses:
-        204:
-          description: Successfully updated the user
         403:
-          description: Insufficient privileges to update the users
+          description: Insufficient privilieges to run this action
+        404:
+          description: The user does not exist in the system
+
   /scopes:
     get:
       summary: Get all Scopes in the System
@@ -553,6 +636,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges to run this action
     put:
       summary: Create a new scope in the system
       tags:
@@ -564,10 +649,60 @@ paths:
         content:
           application/json:
             schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the new scope
+                description:
+                  type: string
+                  description: Description of the new scope
+                value:
+                  type: string
+                  description: Value used to identify scope in scope strings
+              required:
+                - name
+                - description
+                - value
+              example:
+                name: Example Scope
+                description: This is a examplatory scope
+                value: example
+      responses:
+        200:
+          description: Successfully created the scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges to run this action
+        409:
+          description: The scope already exists in the system
+
+    patch:
+      summary: Update a scope in the system
+      tags:
+        - Scope Operations
+      security:
+        - authorization:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
               $ref: '#/components/schemas/Scope'
       responses:
-        201:
-          description: Successfully created the new scope
+        200:
+          description: Successfully updated the scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges to run this action
+        404:
+          description: The scope does not exist and therefore a update is not possible
 
   /scopes/{id}:
     parameters:
@@ -591,24 +726,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges to run this action
         404:
           description: The scope does not exsist
 
-    patch:
-      summary: Update a scope in the system
-      tags:
-        - Scope Operations
-      security:
-        - authorization:
-            - admin
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Scope'
-      responses:
-        201:
-          description: Successfully updated the scope
+
 
     delete:
       summary: Delete a scope in the system
@@ -619,7 +742,11 @@ paths:
           - admin
       responses:
         201:
-          description: Successfully updated the scope
+          description: Successfully deleted the scope
+        403:
+          description: Insufficient privilieges to run this action
+        404:
+          description: The scope does not exsist and therefore cannot be deleted
 
   /roles:
     get:
@@ -649,10 +776,66 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Scope'
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name of the new role
+                description:
+                  type: string
+                  description: Description of the new role
+                scopes:
+                  type: string
+                  description: Scope string of scopes which is assigned to every user with this role
+              required:
+                - name
+                - description
+                - scopes
       responses:
         201:
           description: Successfully created the new scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        403:
+          description: Insufficient privileges
+        409:
+          description: The role already exists in the system
+
+    patch:
+      summary: Update a role in the system
+      tags:
+        - Role Operations
+      security:
+        - authorization:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Changed name of the role
+                description:
+                  type: string
+                  description: Changed description of the role
+                scopes:
+                  type: string
+                  description: Scope string of scopes which is assigned to every user with this role
+      responses:
+        200:
+          description: Successfully updated the role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        403:
+          description: Insufficient privilieges
+        404:
+          description: The role does not exsist and therefore cannot be updated
 
   /roles/{id}:
     parameters:
@@ -676,24 +859,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Scope'
+        403:
+          description: Insufficient privilieges
         404:
           description: The role does not exsist
-    patch:
-      summary: Update a role in the system
-      tags:
-        - Role Operations
-      security:
-        - authorization:
-            - admin
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Role'
-      responses:
-        201:
-          description: Successfully updated the role
-
     delete:
       summary: Delete the specified role from the system
       tags:
@@ -704,3 +873,7 @@ paths:
       responses:
         204:
           description: Successfully deleted the role
+        403:
+          description: Insufficient privilieges
+        404:
+          description: The role does not exist and therefore cannot be deleted

@@ -58,33 +58,26 @@ class Role(BaseModel):
         allow_population_by_alias = True
 
 
-class User(BaseModel):
-    id: int = Field(
+class BaseUser(BaseModel):
+    user_id: int = Field(
         default=...,
         title='User ID',
         description='Internally used id for every account present in the system. This user id may '
                     'be used for updating users',
-        alias='user_id'
+        alias='id'
     )
     first_name: Optional[str] = Field(
-        default=...,
         title='First Name',
         description='The first name(s) of the user',
         alias='firstName'
     )
     last_name: Optional[str] = Field(
-        default=...,
         title='Last Name',
         description='The last name(s) of the user',
         alias='lastName'
     )
     username: Optional[str] = Field(
-        default=...,
         title='Username'
-    )
-    password: Optional[SecretStr] = Field(
-        title='Password',
-        description='This should only be set if creating a new user or updating the user.',
     )
     last_login: Optional[int] = Field(
         title='Last Login (UNIX Timestamp)',
@@ -169,35 +162,37 @@ class IntrospectionResponse(BaseModel):
     )
 
 
-class NewUser(BaseModel):
-    first_name: Optional[str] = Field(
-        default=...,
-        title='First Name',
-        description='The first name(s) of the user',
-        alias='firstName'
+class NewUser(BaseUser):
+    user_id: Optional[int] = Field(
+        title='Optional User id',
+        alias='id'
     )
-    last_name: Optional[str] = Field(
-        default=...,
-        title='Last Name',
-        description='The last name(s) of the user',
-        alias='lastName'
-    )
-    username: Optional[str] = Field(
-        default=...,
-        title='Username'
-    )
+    """Override to disable the need for the user id"""
     password: SecretStr = Field(
+        default=...,
         title='Password',
         description='This should only be set if creating a new user or updating the user.',
     )
-    scopes: Optional[List[int]] = Field(
-        default=[1],
-        title='Scopes',
-        description='This should always include the id of the me scope since the user wont be '
-                    'able to access his own information.'
+    scopes: str = Field(
+        title='Scope String',
+        default='me'
     )
     roles: Optional[List[int]] = Field(
-        default=[],
-        title='Roles',
-        description='IDs of the roles granted to the user upon account creations'
+        title='List of role ids',
+        default=[]
+    )
+
+
+class UserUpdate(BaseUser):
+    scopes: Optional[str] = Field(
+        default=None,
+        title='List of scopes the user now will have'
+    )
+    password: Optional[SecretStr] = Field(
+        default=None,
+        title='Updated Password'
+    )
+    roles: Optional[List[int]] = Field(
+        default=None,
+        title='List of roles the user now will have'
     )

@@ -3,12 +3,14 @@ from typing import List, Set
 from sqlalchemy.orm import Session
 
 import data_models
+from api.exceptions import ObjectNotFoundException
 from db import objects
 from .role import get_roles_for_user
 
 
-def assign_user_to_scope(db: Session, user_id: int, scope_id: int) -> objects.UserScope:
-    assignment = objects.UserScope(scope_id=scope_id, user_id=user_id)
+def assign_user_to_scope(db: Session, user_id: int, scope_value: str) -> objects.UserScope:
+    scope = db.query(objects.Scope).filter(objects.Scope.scope_value == scope_value).first()
+    assignment = objects.UserScope(scope_id=scope.scope_id, user_id=user_id)
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
@@ -157,6 +159,8 @@ def add_scope(db: Session, name: str, description: str, value: str):
 
 def update_scope(db: Session, scope_id: int, **kwargs):
     scope = get_scope(db, scope_id)
+    if scope is None:
+        raise ObjectNotFoundException()
     if "scope_name" in kwargs and kwargs["scope_name"] is not None:
         scope.scope_name = kwargs["scope_name"].strip()
     if "scope_description" in kwargs and kwargs["scope_description"] is not None:

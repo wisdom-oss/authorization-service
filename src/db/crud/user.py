@@ -4,6 +4,7 @@ from typing import List, Optional
 from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
+from api.exceptions import ObjectNotFoundException
 from .role import assign_user_to_role
 from passlib.hash import pbkdf2_sha512
 from db.crud.scope import assign_user_to_scope
@@ -62,7 +63,7 @@ def add_user(db: Session, new_user: data_models.NewUser) -> objects.User:
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    for scope in new_user.scopes:
+    for scope in new_user.scopes.split(" "):
         assign_user_to_scope(db, db_user.user_id, scope)
     for role in new_user.roles:
         assign_user_to_role(db, db_user.user_id, role)
@@ -79,8 +80,9 @@ def remove_user(db: Session, user_id: int):
     :return:
     """
     db_user = db.query(objects.User).filter(objects.User.user_id == user_id).first()
-    db.delete(db_user)
-    db.commit()
+    if db_user is not None:
+        db.delete(db_user)
+        db.commit()
 
 
 def update_user(db: Session, user_id: int, **new_values) -> objects.User:
@@ -93,40 +95,32 @@ def update_user(db: Session, user_id: int, **new_values) -> objects.User:
         When passing scopes or roles all scopes or roles need to be passed to the function.
     :return: The updated user
     """
-    if 'first_name' in new_values:
-        db.execute(
-            update(objects.User)
-            .where(objects.User.user_id == user_id)
-            .values(first_name=new_values.get('first_name'))
-        )
-    if 'last_name' in new_values:
-        db.execute(
-            update(objects.User)
-            .where(objects.User.user_id == user_id)
-            .values(last_name=new_values.get('last_name'))
-        )
-    if 'username' in new_values:
-        db.execute(
-            update(objects.User)
-            .where(objects.User.user_id == user_id)
-            .values(username=new_values.get('username'))
-        )
-    if 'password' in new_values:
+    _user = get_user_by_id(db, user_id)
+    if _user is None:
+        raise ObjectNotFoundException()
+    print(_user.username)
+    print(new_values)
+    if 'first_name' in new_values and new_values['first_name'].strip() != "":
+        _user.first_name = new_values['first_name'].strip()
+    if 'last_name' in new_values and new_values['last_name'].strip() != "":
+        _user.last_name = new_values['last_name'].strip()
+    if 'username' in new_values and new_values['username'].strip() != "":
+        _user.username = new_values['username'].strip()
+    if 'password' in new_values and new_values['password'].strip() != "":
         _password_hash = pbkdf2_sha512.hash(
-            new_values.get('password'),
+            new_values['password'],
             salt_size=random.randint(32, 1024)
         )
-        db.execute(
-            update(objects.User)
-            .where(objects.User.user_id == user_id)
-            .values(password=_password_hash)
-        )
-    if 'scopes' in new_values:
-        db.query(delete(objects.UserScope).where(objects.UserScope.user_id == user_id))
-        for scope in new_values.get('scopes'):
-            assign_user_to_scope(db, user_id, scope.id)
-    if 'roles' in new_values:
-        db.query(delete(objects.UserRole).where(objects.UserRole.user_id == user_id))
+        _user.password = _password_hash
+    if 'scopes' in new_values and new_values["scopes"] is not None:
+        db.query(objects.UserScope).filter(objects.UserScope.user_id == user_id).delete()
+        db.commit()
+        for scope in new_values.get('scopes').split(" "):
+            assign_user_to_scope(db, user_id, scope)
+            db.commit()
+    if 'roles' in new_values and new_values["roles"] is not None:
+        db.query(objects.UserRole).filter(objects.UserRole.user_id == user_id).delete()
+        db.commit()
         for role in new_values.get('roles'):
             assign_user_to_role(db, user_id, role.id)
     # Commit the changes made to the database
