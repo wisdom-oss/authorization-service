@@ -207,26 +207,41 @@ async def login(
 )
 async def check_token(
         db_session: Session = Depends(get_db_session),
-        _current_user: data_models.BaseUser = Security(get_user),
-        token: str = Form(...)
+        user: data_models.BaseUser = Security(get_user),
+        token: str = Form(...),
+        scope: str = Form(None)
 ):
     # Check the access_token table for a token with the value
     _token = get_access_token_via_value(db_session, token)
     if _token is not None:
         if time.time() <= _token.expires:
             # Create string of the scopes available for this user
-            scopes = " "
+            available_scopes = []
             for token_scope in _token.scopes:
-                scopes += f'{token_scope.scope.scope_value} '
-            scopes = scopes.strip()
-            return data_models.IntrospectionResponse(
-                active=True,
-                scope=scopes,
-                username=_token.user[0].user.username,
-                token_type='access_token',
-                exp=_token.expires,
-                iat=_token.created
-            ).dict(exclude_unset=True, exclude_none=True)
+                available_scopes.append(token_scope.scope.scope_value)
+            if scope is not None:
+                for _ in scope.split(" "):
+                    if _ not in available_scopes:
+                        return data_models.IntrospectionResponse(
+                            active=False
+                        ).dict(exclude_unset=True, exclude_none=True)
+                return data_models.IntrospectionResponse(
+                    active=True,
+                    scope=scope,
+                    username=_token.user[0].user.username,
+                    token_type='access_token',
+                    exp=_token.expires,
+                    iat=_token.created
+                ).dict(exclude_unset=True, exclude_none=True)
+            else:
+                return data_models.IntrospectionResponse(
+                    active=True,
+                    scope=" ".join(available_scopes),
+                    username=_token.user[0].user.username,
+                    token_type='access_token',
+                    exp=_token.expires,
+                    iat=_token.created
+                ).dict(exclude_unset=True, exclude_none=True)
         else:
             return data_models.IntrospectionResponse(
                 active=False
