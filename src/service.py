@@ -36,6 +36,7 @@ if __name__ == '__main__':
     logger.debug('The config now is %s', config)
     uvicorn.run(
         "api:auth_service",
-        port=5000
+        port=5000,
+        host='0.0.0.0'
     )
 
