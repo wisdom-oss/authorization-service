@@ -15,3 +15,9 @@ class ServiceSettings(BaseSettings):
         env='SQLALCHEMY_DATABASE_URL'
     )
 
+    eureka_url: str = Field(
+        default=...,
+        alias='EUREKA_HOST',
+        env='EUREKA_HOST'
+    )
+
