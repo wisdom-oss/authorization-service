@@ -12,8 +12,10 @@ from pydantic import constr, parse_obj_as
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import Response
+from py_eureka_client.eureka_client import EurekaClient
 
 import data_models
+import data_models.settings
 import db.crud.user
 from db import DatabaseSession, engine
 from db.crud.role import (add_role, get_role_dict_for_user, get_role_information, get_roles,
@@ -33,6 +35,15 @@ from .exceptions import AuthorizationException, ObjectNotFoundException
 
 # Initialize all database connections
 db.TableBase.metadata.create_all(bind=engine)
+ec = EurekaClient(
+    eureka_server=f'http://{data_models.settings.ServiceSettings().eureka_url}:8761/',
+    app_name='authorization-service',
+    instance_port=5000,
+    should_register=True,
+    renewal_interval_in_secs=5
+)
+ec.start()
+
 auth_service = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(

@@ -298,6 +298,20 @@ paths:
         - authorization:
             - admin
             - me
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: |
+                    The token that the client wants to get checked
+                scope:
+                  type: string
+                  description: |
+                    The scopes against which this token shall be validated
       responses:
         200:
           description: Introspection Result of the Token
@@ -466,11 +480,8 @@ paths:
                 password:
                   type: string
                 scopes:
-                  type: array
-                  description: Array with the scope ids granted to the user
-                  default: [1]
-                  items:
-                    type: integer
+                  type: string
+                  description: String with scope values
                 roles:
                   type: array
                   description: Array with the role ids the user is assigned to
