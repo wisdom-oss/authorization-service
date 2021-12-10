@@ -466,11 +466,8 @@ paths:
                 password:
                   type: string
                 scopes:
-                  type: array
-                  description: Array with the scope ids granted to the user
-                  default: [1]
-                  items:
-                    type: integer
+                  type: string
+                  description: String with scope values
                 roles:
                   type: array
                   description: Array with the role ids the user is assigned to
