@@ -57,7 +57,7 @@ def __generate_root_user():
         'Generated "root" user with the following password: {}',
         _root_user.password.get_secret_value()
     )
-    # Prepare the sql statement | TODO: Create ORM model for the users table
+    # Prepare the sql statement
 
 
 def initialise_databases():
