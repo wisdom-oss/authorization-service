@@ -1,5 +1,5 @@
 """Module containing the pydantic data models for incoming requests"""
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from pydantic import BaseModel, Field, SecretStr
 from passlib import pwd
@@ -32,7 +32,7 @@ class NewUserAccount(BaseModel):
         default=pwd.genword(length=32, charset='ascii_72'),
         title='Password',
         description='The password of the new user. If none is supplied a random password will be '
-                    'generated. This password is not retrievable via any request or database query'
+                    'generated. This password is not retrievable via any incoming or database query'
     )
     """Password of the new user. (Auto-generated if none is supplied)"""
 
@@ -43,9 +43,9 @@ class NewUserAccount(BaseModel):
     )
     """Scopes of the new users"""
 
-    roles: Optional[List[str]] = Field(
-        default=[],
+    roles: Optional[Set[str]] = Field(
+        default={},
         title='Roles',
         description='The roles assigned to the user during the creation of the account'
     )
-    """Roles of the new user"""
+    """Names of the roles which shall be assigned to the new user"""
