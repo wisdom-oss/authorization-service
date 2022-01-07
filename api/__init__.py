@@ -24,7 +24,7 @@ __service_registry_client: Optional[EurekaClient] = None
 async def api_startup():
     """Event handler for the startup.
 
-    The code will be executed before any HTTP request will be accepted
+    The code will be executed before any HTTP incoming will be accepted
     """
     # Get a logger for this event
     __log = logging.getLogger('API.startup')
