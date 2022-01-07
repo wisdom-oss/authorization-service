@@ -15,7 +15,7 @@ class Role(TableDeclarationBase):
     """ORM mapping for the table containing the used roles"""
 
     __tablename__ = "roles"
-    """Name of the table in the database"""
+    """Name of the table incoming the database"""
 
     role_id = Column(Integer, primary_key=True, autoincrement=True)
     """Internal ID of the role"""
@@ -32,11 +32,12 @@ class Role(TableDeclarationBase):
     users = relationship("User", secondary='account_roles')
     """Users with the role"""
 
+
 class Scope(TableDeclarationBase):
     """ORM for the table containing the available scopes"""
 
     __tablename__ = "scopes"
-    """Name of the table in the database"""
+    """Name of the table incoming the database"""
 
     scope_id = Column(Integer, primary_key=True, autoincrement=True)
     """Internal id of the scope"""
@@ -48,20 +49,20 @@ class Scope(TableDeclarationBase):
     """Textual description of the scope"""
 
     scope_value = Column(String(length=255), unique=True)
-    """String used to identify the scope in OAuth2 scope strings"""
+    """String used to identify the scope incoming OAuth2 scope strings"""
 
 
 class AccessTokens(TableDeclarationBase):
     """ORM for the Authorization Tokens"""
 
     __tablename__ = "access_tokens"
-    """Name of the table in the database"""
+    """Name of the table incoming the database"""
 
     token_id = Column(Integer, primary_key=True, autoincrement=True)
     """Internal id of the token"""
 
     token = Column(String(length=36, unique=True))
-    """Actual token used in the Authorization header"""
+    """Actual token used incoming the Authorization header"""
 
     expires = Column(Integer, nullable=False)
     """Expiration date and time as UNIX Timestamp"""
@@ -77,7 +78,7 @@ class RefreshToken(TableDeclarationBase):
     """ORM for the refresh tokens"""
 
     __tablename__ = "refresh_tokens"
-    """Name of the table in the database"""
+    """Name of the table incoming the database"""
 
     refresh_token_id = Column(Integer, primary_key=True, autoincrement=True)
     """Internal id of the refresh token"""
@@ -99,7 +100,7 @@ class Account(TableDeclarationBase):
     """ORM for the account table"""
 
     __tablename__ = "accounts"
-    """Name of the table in the database"""
+    """Name of the table incoming the database"""
 
     account_id = Column(Integer, primary_key=True, autoincrement=True)
     """Internal numeric account id"""
@@ -121,6 +122,9 @@ class Account(TableDeclarationBase):
 
     scopes = relationship("Scope", secondary='account_scopes')
     """Scopes assigned to the account"""
+
+    roles = relationship("Role", secondary='account_roles')
+    """Roles assigned to the account"""
 
     tokens = relationship("Token", secondary='account_tokens')
     """Access tokens assigned to the account"""
@@ -161,7 +165,7 @@ class TokenToRefreshToken(TableDeclarationBase):
     """Internal ID of the access token"""
 
 
-class AccountToScopes(TableDeclarationBase):
+class AccountToScope(TableDeclarationBase):
     """ORM for linking accounts to the scopes"""
 
     __tablename__ = "account_scopes"
@@ -198,4 +202,3 @@ class AccountToRefreshTokens(TableDeclarationBase):
 
     account_id = Column(Integer, ForeignKey('accounts.account_id', **_fk_options))
     refresh_token_id = Column(Integer, ForeignKey('refresh_tokens.refresh_token_id', **_fk_options))
-
