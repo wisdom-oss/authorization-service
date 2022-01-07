@@ -2,16 +2,15 @@
 import logging
 import sys
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, insert
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils import database_exists, create_database
 
 from models import ServiceSettings
-
-# Logger the main module
-from models.request import NewUserAccount
+from models.incoming import NewUserAccount
+from .tables import Account
 
 __logger = logging.getLogger("DB")
 
@@ -32,7 +31,7 @@ TableDeclarationBase = declarative_base()
 
 
 def session() -> DatabaseSession:
-    """Get an opened session for usage in the api dependencies"""
+    """Get an opened session for usage incoming the api dependencies"""
     __session = DatabaseSession()
     try:
         yield __session
