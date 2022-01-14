@@ -1,0 +1,49 @@
+{
+  "items": [
+    {
+      "items": [
+        "api/__init__",
+        "api/dependencies",
+        "api/exceptions"
+      ],
+      "label": "api",
+      "type": "category"
+    },
+    {
+      "items": [
+        "data_models/__init__",
+        "data_models/settings"
+      ],
+      "label": "data_models",
+      "type": "category"
+    },
+    {
+      "items": [
+        {
+          "items": [
+            "db/crud/__init__",
+            "db/crud/role",
+            "db/crud/scope",
+            "db/crud/token",
+            "db/crud/user"
+          ],
+          "label": "db.crud",
+          "type": "category"
+        },
+        {
+          "items": [
+            "db/objects/__init__"
+          ],
+          "label": "db.objects",
+          "type": "category"
+        },
+        "db/__init__"
+      ],
+      "label": "db",
+      "type": "category"
+    },
+    "service"
+  ],
+  "label": "Reference",
+  "type": "category"
+}
