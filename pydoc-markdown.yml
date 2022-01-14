@@ -1,0 +1,8 @@
+loaders:
+  - type: python
+renderer:
+  type: docusaurus
+  docs_base_path: docs
+  relative_output_path: .
+  relative_sidebar_path: sidebar.json
+  sidebar_top_level_label: 'Reference'
