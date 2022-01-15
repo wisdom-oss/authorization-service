@@ -5,10 +5,11 @@ from sqlalchemy.orm import relationship
 from .. import TableDeclarationBase
 
 # Options for the foreign keys
-_fk_options = {
+FK_OPTIONS = {
     "onupdate": "CASCADE",
     "ondelete": "CASCADE"
 }
+"""Default options for the foreign key relations"""
 
 
 class Role(TableDeclarationBase):
@@ -139,8 +140,11 @@ class RoleToScopes(TableDeclarationBase):
     __tablename__ = "role_scopes"
     """Name of the association table"""
 
-    role_id = Column(Integer, ForeignKey('roles.role_id', **_fk_options))
-    scope_id = Column(Integer, ForeignKey('scopes.scope_id', **_fk_options))
+    role_id = Column(Integer, ForeignKey('roles.role_id', **FK_OPTIONS))
+    """ID of the role"""
+
+    scope_id = Column(Integer, ForeignKey('scopes.scope_id', **FK_OPTIONS))
+    """ID of the scope ofr this role"""
 
 
 class TokenToScopes(TableDeclarationBase):
@@ -149,8 +153,11 @@ class TokenToScopes(TableDeclarationBase):
     __tablename__ = "token_scopes"
     """Name of the association table"""
 
-    token_id = Column(Integer, ForeignKey('access_tokens.token_id', **_fk_options))
-    scope_id = Column(Integer, ForeignKey('scopes.scope_id', **_fk_options))
+    token_id = Column(Integer, ForeignKey('access_tokens.token_id', **FK_OPTIONS))
+    """ID of the Access Token"""
+
+    scope_id = Column(Integer, ForeignKey('scopes.scope_id', **FK_OPTIONS))
+    """ID of the scope for this token"""
 
 
 class TokenToRefreshToken(TableDeclarationBase):
@@ -158,10 +165,10 @@ class TokenToRefreshToken(TableDeclarationBase):
 
     __tablename__ = "refresh_token_tokens"
 
-    refresh_token_id = Column(Integer, ForeignKey('refresh_tokens.refresh_token_id', **_fk_options))
+    refresh_token_id = Column(Integer, ForeignKey('refresh_tokens.refresh_token_id', **FK_OPTIONS))
     """Internal ID of the refresh token"""
 
-    access_token_id = Column(Integer, ForeignKey('access_tokens.token_id', **_fk_options))
+    access_token_id = Column(Integer, ForeignKey('access_tokens.token_id', **FK_OPTIONS))
     """Internal ID of the access token"""
 
 
@@ -171,8 +178,11 @@ class AccountToScope(TableDeclarationBase):
     __tablename__ = "account_scopes"
     """Name of the association table"""
 
-    account_id = Column(Integer, ForeignKey('accounts.account_id', **_fk_options))
-    scope_id = Column(Integer, ForeignKey('scopes.scope_id', **_fk_options))
+    account_id = Column(Integer, ForeignKey('accounts.account_id', **FK_OPTIONS))
+    """Internal id of the account"""
+
+    scope_id = Column(Integer, ForeignKey('scopes.scope_id', **FK_OPTIONS))
+    """ID of the scope assigned to the account"""
 
 
 class AccountToRoles(TableDeclarationBase):
@@ -181,8 +191,11 @@ class AccountToRoles(TableDeclarationBase):
     __tablename__ = "account_roles"
     """Name of the association table"""
 
-    account_id = Column(Integer, ForeignKey('accounts.account_id', **_fk_options))
-    role_id = Column(Integer, ForeignKey('roles.role_id', **_fk_options))
+    account_id = Column(Integer, ForeignKey('accounts.account_id', **FK_OPTIONS))
+    """Internal ID of the account"""
+
+    role_id = Column(Integer, ForeignKey('roles.role_id', **FK_OPTIONS))
+    """ID of the role assigned to the account"""
 
 
 class AccountToToken(TableDeclarationBase):
@@ -191,14 +204,21 @@ class AccountToToken(TableDeclarationBase):
     __tablename__ = "account_tokens"
     """Name of the association table"""
 
-    account_id = Column(Integer, ForeignKey('accounts.account_id', **_fk_options))
-    token_id = Column(Integer, ForeignKey('access_tokens.token_id', **_fk_options))
+    account_id = Column(Integer, ForeignKey('accounts.account_id', **FK_OPTIONS))
+    """Internal ID of the account"""
+
+    token_id = Column(Integer, ForeignKey('access_tokens.token_id', **FK_OPTIONS))
+    """ID of the token issued via this account"""
 
 
 class AccountToRefreshTokens(TableDeclarationBase):
     """ORM for linking an account to their refresh tokens"""
 
     __tablename__ = "account_refresh_tokens"
+    """Name of the association table"""
 
-    account_id = Column(Integer, ForeignKey('accounts.account_id', **_fk_options))
-    refresh_token_id = Column(Integer, ForeignKey('refresh_tokens.refresh_token_id', **_fk_options))
+    account_id = Column(Integer, ForeignKey('accounts.account_id', **FK_OPTIONS))
+    """Internal ID of the account"""
+
+    refresh_token_id = Column(Integer, ForeignKey('refresh_tokens.refresh_token_id', **FK_OPTIONS))
+    """ID of the refresh token for the account"""
