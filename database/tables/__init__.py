@@ -63,11 +63,17 @@ class AccessToken(TableDeclarationBase):
     token = Column(String(length=36), unique=True)
     """Actual token used incoming the Authorization header"""
 
+    active = Column(Boolean, default=True)
+    """Status of the token"""
+
     expires = Column(Integer, nullable=False)
     """Expiration date and time as UNIX Timestamp"""
 
     created = Column(Integer, nullable=False)
     """Creation date and time as UNIX Timestamp"""
+
+    user = relationship("Account", secondary='account_tokens')
+    """User which is assigned to this token"""
 
     scopes = relationship("Scope", secondary='token_scopes')
     """Scopes associated with that token"""
