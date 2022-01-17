@@ -122,9 +122,6 @@ class Account(TableDeclarationBase):
     roles = relationship("Role", secondary='account_roles')
     """Roles assigned to the account"""
 
-    tokens = relationship("AccessToken", secondary='account_tokens')
-    """Access tokens assigned to the account"""
-
     refresh_tokens = relationship("RefreshToken", secondary='account_refresh_tokens')
     """Refresh tokens assigned to the account"""
 
