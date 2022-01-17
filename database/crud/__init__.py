@@ -126,6 +126,30 @@ def get_scope_by_value(scope_value: str, session: Session) -> typing.Optional[ta
     return session.query(tables.Scope).filter(tables.Scope.scope_value == scope_value).first()
 
 
+# ==== Access-Token table operations ====
+def get_access_token(token_id: int, session: Session) -> typing.Optional[tables.AccessToken]:
+    """Get an access token from the database by its internal id
+
+    :param token_id: Internal Access Token ID
+    :param session: Database session
+    :return: If the token exists the token, else None
+    """
+    return session.query(tables.AccessToken).filter(tables.AccessToken.token_id == token_id).first()
+
+
+def get_access_token_by_token(
+        token_value: str,
+        session: Session
+) -> typing.Optional[tables.AccessToken]:
+    """Get an access token from the database by its actual value
+
+    :param token_value: The actual value of the access token
+    :param session: Database session
+    :return: If the token exists the token, else None
+    """
+    return session.query(tables.AccessToken).filter(tables.AccessToken.token == token_value).first()
+
+
 # ==== Mapping-Table operations ====
 def map_scope_to_account(
         scope_value: str,
@@ -166,7 +190,8 @@ def map_role_to_account(role_name: str, account_id: int, session: Session):
     """
     # Get the role object for retrieving the internal role id
     role: tables.Role = (
-        session.query(tables.Role)
+            session
+            .query(tables.Role)
             .filter(tables.Role.role_name == role_name)
             .first()
     )
