@@ -3,9 +3,12 @@ import logging
 from typing import Optional
 
 from fastapi import FastAPI as fastapi_application
+from fastapi import Request
+from fastapi.responses import UJSONResponse
 from py_eureka_client.eureka_client import EurekaClient
 
 import database
+from exceptions import AuthorizationException
 from models import ServiceSettings
 
 auth_service_rest = fastapi_application()
@@ -59,3 +62,30 @@ def api_shutdown():
     global __service_registry_client
     # Stop the client and deregister the service
     __service_registry_client.stop()
+
+
+# == Exception handlers ==
+@auth_service_rest.exception_handler(AuthorizationException)
+async def handle_authorization_exception(
+        _request: Request,
+        e: AuthorizationException
+) -> UJSONResponse:
+    """Handle the Authorization exception
+
+    This handler will set the error information according to the data present in the exception.
+    Furthermore, the optional data will be passed in the `WWW-Authenticate` header.
+
+    :param _request: The request in which the exception occurred in
+    :param e: The Authorization Exception
+    :return: A UJSON response
+    """
+    return UJSONResponse(
+        status_code=e.http_status_code,
+        content={
+            "error": e.short_error,
+            "error_description": e.error_description
+        },
+        headers={
+            'WWW-Authenticate': f'Bearer {e.optional_data}'.strip()
+        }
+    )
