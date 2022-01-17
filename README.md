@@ -1,11 +1,11 @@
 # Authorization and User Service
 Maintainer: [Jan Eike Suchard](https://github.com/j-suchard)  
-Version: 0.1
+Version: 0.2
 
 
 ## System Requirements
 ### for Development
-- Python 3.10
+- Python 3.9
 - packages vom requirements.txt
 
 This service offers the possibility to authorize users for frontend end backend

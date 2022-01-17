@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.9
 # Setup some labels for the Image
 LABEL de.uol.wisdom-oss.vendor="Project group WISdoM 2.0"
 LABEL de.uol.wisdom-oss.maintainer="wisdom@uol.de"
