@@ -1,11 +1,11 @@
 """Module containing the routes and actions run when requesting a specific route"""
 import logging
-import time
 from typing import Optional
 
 from fastapi import FastAPI as fastapi_application
 from py_eureka_client.eureka_client import EurekaClient
 
+import database
 from models import ServiceSettings
 
 auth_service_rest = fastapi_application()
@@ -21,7 +21,7 @@ __service_registry_client: Optional[EurekaClient] = None
 
 # == Event handlers == #
 @auth_service_rest.on_event('startup')
-async def api_startup():
+def api_startup():
     """Event handler for the startup.
 
     The code will be executed before any HTTP incoming will be accepted
@@ -44,4 +44,18 @@ async def api_startup():
     __service_registry_client.start()
     # Set the status of this service to starting to disallow routing to them
     __service_registry_client.status_update('STARTING')
-    # TODO: Initialize the database models and connections
+    # Initialize the database models and connections and check for any errors in the database tables
+    database.initialise_databases()
+    # Inform the service registry of the new server status
+    __service_registry_client.status_update('UP')
+
+
+@auth_service_rest.on_event('shutdown')
+def api_shutdown():
+    """Event handler for the shutdown process of the application"""
+    # Get a logger for this event
+    __log = logging.getLogger('API.startup')
+    # Enable the global usage of the registry client
+    global __service_registry_client
+    # Stop the client and deregister the service
+    __service_registry_client.stop()

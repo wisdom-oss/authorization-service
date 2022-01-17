@@ -38,21 +38,44 @@ def add_to_database(obj: X, session: Session) -> X:
 
 
 # ==== Account-Table operations ====
-def get_user(user_id: int, session: Session) -> models.outgoing.UserAccount:
+def get_users(session: Session) -> typing.List[tables.Account]:
+    """Get all users in the database
+
+    :param session: Database session
+    :return:
+    """
+    return session.query(tables.Account).all()
+
+
+def get_user(user_id: int, session: Session) -> typing.Optional[tables.Account]:
     """Get an account by its internal id
 
     :param user_id: The internal user id
     :param session: Database connection
     :return: The account data from the database
     """
-    return models.outgoing.UserAccount.parse_obj(
-        session.query(models.outgoing.UserAccount).filter(
-            models.outgoing.UserAccount.account_id == user_id
-            ).first()
-    )
+    return (session
+            .query(tables.Account)
+            .filter(tables.Account.account_id == user_id)
+            .first()
+            )
 
 
-def add_user(new_user: NewUserAccount, session: Session) -> models.outgoing.UserAccount:
+def get_user_by_username(username: str, session: Session) -> typing.Optional[tables.Account]:
+    """Get a users account by a username
+
+    :param username: The username of the account
+    :param session: Database session
+    :return: None if the user does not exist, else the orm account
+    """
+    return (session
+            .query(tables.Account)
+            .filter(tables.Account.username == username)
+            .first()
+            )
+
+
+def add_user(new_user: NewUserAccount, session: Session) -> tables.Account:
     """Add a new user to the database
 
     :param new_user: New user which shall be created
@@ -80,6 +103,27 @@ def add_user(new_user: NewUserAccount, session: Session) -> models.outgoing.User
     session.refresh(account)
     # Return the account
     return account
+
+
+# ==== Scope-Table operations ====
+def get_scope(scope_id: int, session: Session) -> typing.Optional[tables.Scope]:
+    """Get a scope from the database by its internal id
+
+    :param scope_id: Internal ID of the scope
+    :param session: Database session
+    :return: None if the scope does not exist, else the scope orm
+    """
+    return session.query(tables.Scope).filter(tables.Scope.scope_id == scope_id).first()
+
+
+def get_scope_by_value(scope_value: str, session: Session) -> typing.Optional[tables.Scope]:
+    """Get a scope from the database by its scope value
+
+    :param scope_value: Value of the scope for the scope string
+    :param session: Database session
+    :return: None if the scope does not exist, else the orm representation of the scope
+    """
+    return session.query(tables.Scope).filter(tables.Scope.scope_value == scope_value).first()
 
 
 # ==== Mapping-Table operations ====

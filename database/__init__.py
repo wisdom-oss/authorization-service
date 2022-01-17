@@ -12,7 +12,7 @@ from passlib import pwd
 import models
 import models.incoming
 from . import crud
-from .tables import Scope, TableDeclarationBase
+from .tables import Scope, TableDeclarationBase, Account
 
 __logger = logging.getLogger("DB")
 
@@ -85,6 +85,50 @@ def __generate_scopes(__db_session: DatabaseSession = next(session())):
     __db_session.commit()
 
 
+def __check_required_tables(__db_session: DatabaseSession = next(session())):
+    """Check if at least one account exists in the database and the scopes "me" and "admin" are
+    present
+
+    :param __db_session: Database session
+    :return:
+    """
+    # Check if the admin scope exists in the database
+    if crud.get_scope_by_value("admin", __db_session) is None:
+        __logger.error('The scope "admin" was not found in the database. Therefore the '
+                       'authorization service is not manageable. For more information, '
+                       'please confer to the documentation: NO_ADMIN_SCOPE')
+        sys.exit(1)
+    if crud.get_scope_by_value("me", __db_session) is None:
+        __logger.warning('The scope "me" was not found in the database. You should recreate this '
+                         'scope since users (who are not admins) may not read their own account '
+                         'information, thus creating unexpected behaviour')
+    # Check if a user exists in the database
+    user_list = crud.get_users(__db_session)
+    if len(user_list) == 0:
+        __logger.error('There is no user in the database. Therefore this service and all '
+                       'dependent services are unable to authorize users. This will break the '
+                       'system. Please try to fix problem by manually logging in to the '
+                       'database and recreating a user with the admin scope. For more '
+                       'information please confer to the documentation. NO_USERS_FOUND')
+        sys.exit(1)
+    else:
+        # Iterate through the users and check if any user with an "admin" scope is present in
+        # the system
+        found_user_with_admin_scope: bool = False
+        for account in user_list:
+            for scope in account.scopes:
+                if scope.scope_value == "admin":
+                    found_user_with_admin_scope = True
+                    break
+            if found_user_with_admin_scope:
+                break
+        if not found_user_with_admin_scope:
+            __logger.error('There are users present in the database, but no user has '
+                           'permissions to create/read/update/delete accounts. Therefore no '
+                           'new users are creatable. To fix this problem, please confer to '
+                           'the documentation: NO_USER_WITH_ADMIN_SCOPE')
+
+
 def initialise_databases():
     """Check if the database exists on the specified server and all tables are present"""
     if not database_exists(__settings.database_dsn):
@@ -106,3 +150,5 @@ def initialise_databases():
             sys.exit(1)
     else:
         TableDeclarationBase.metadata.create_all(bind=__engine)
+        __check_required_tables()
+
