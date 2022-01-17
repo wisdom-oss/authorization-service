@@ -1,0 +1,138 @@
+"""Package for the CREATE/READ/UPDATE/DELETE utilities"""
+import typing
+
+from sqlalchemy.orm import Session
+from passlib.hash import pbkdf2_sha512 as pass_hash
+
+import models.outgoing
+from models.incoming import NewUserAccount
+
+from .. import tables
+
+X = typing.TypeVar(
+    'X', tables.Account, tables.Scope, tables.Role,
+    tables.AccessToken, tables.RefreshToken, tables.AccountToRoles,
+    tables.AccountToScope, tables.AccountToToken,
+    tables.AccountToRefreshTokens, tables.RoleToScopes,
+    tables.TokenToScopes, tables.TokenToRefreshToken
+)
+"""Generic type for all database inserts"""
+
+
+def add_to_database(obj: X, session: Session) -> X:
+    """Insert a new object into the database
+
+    :param obj: Object which shall be inserted
+    :type obj: X
+    :param session: Database session
+    :return: The inserted object
+    """
+    # Insert the object into the database
+    session.add(obj)
+    # Commit the changes made to the database
+    session.commit()
+    # Refresh the object
+    session.refresh(obj)
+    # Return the refreshed object
+    return obj
+
+
+# ==== Account-Table operations ====
+def get_user(user_id: int, session: Session) -> models.outgoing.UserAccount:
+    """Get an account by its internal id
+
+    :param user_id: The internal user id
+    :param session: Database connection
+    :return: The account data from the database
+    """
+    return models.outgoing.UserAccount.parse_obj(
+        session.query(models.outgoing.UserAccount).filter(
+            models.outgoing.UserAccount.account_id == user_id
+            ).first()
+    )
+
+
+def add_user(new_user: NewUserAccount, session: Session) -> models.outgoing.UserAccount:
+    """Add a new user to the database
+
+    :param new_user: New user which shall be created
+    :param session: Database connection
+    :return: The created user
+    """
+    # Translate the data model into an orm model
+    account: tables.Account = tables.Account(
+        first_name=new_user.first_name,
+        last_name=new_user.last_name,
+        username=new_user.username,
+        is_active=True
+    )
+    # Hash the password and add it to the orm model
+    account.password = pass_hash.hash(new_user.password.get_secret_value())
+    # Insert the db object
+    account = add_to_database(account, session)
+    # Split the scope string and assign the scopes to the user
+    for scope in new_user.scopes.split():
+        map_scope_to_account(scope, account.account_id, session)
+    # Iterate through the role names
+    for role in new_user.roles:
+        map_role_to_account(role, account.account_id, session)
+    # Refresh the user one last time
+    session.refresh(account)
+    # Return the account
+    return account
+
+
+# ==== Mapping-Table operations ====
+def map_scope_to_account(
+        scope_value: str,
+        account_id: int,
+        session: Session
+) -> typing.Optional[tables.AccountToScope]:
+    """Map a scope to the account
+
+    :param scope_value: Value of the scope to be assigned
+    :param account_id: Internal id of the account which shall be using this scope,
+    :param session: Database session
+    :return: The assignment if the scope exists and was assigned, else None
+    """
+    # Get the scope object to retrieve its internal id
+    scope: tables.Scope = (session.query(tables.Scope)
+                           .filter(tables.Scope.scope_value == scope_value)
+                           .first())
+    # Check if a scope with this value exists
+    if scope is not None:
+        # If a scope exists: create a new assignment entry
+        _assignment_entry: tables.AccountToScope = tables.AccountToScope(
+            account_id=account_id,
+            scope_id=scope.scope_id
+        )
+        return add_to_database(_assignment_entry, session)
+    else:
+        # Return None to show that no scope with this name exists
+        return None
+
+
+def map_role_to_account(role_name: str, account_id: int, session: Session):
+    """Map a role to an account
+
+    :param role_name: Name of the role
+    :param account_id: Internal account id
+    :param session: Database connection
+    :return: The association object if the insert was successful, else None
+    """
+    # Get the role object for retrieving the internal role id
+    role: tables.Role = (
+        session.query(tables.Role)
+            .filter(tables.Role.role_name == role_name)
+            .first()
+    )
+    # Check if the role exists
+    if role is not None:
+        _assignment_entry: tables.AccountToRoles = tables.AccountToRoles(
+            account_id=account_id,
+            role_id=role.role_id
+        )
+        return add_to_database(_assignment_entry, session)
+    else:
+        # No role with that name exists
+        return None

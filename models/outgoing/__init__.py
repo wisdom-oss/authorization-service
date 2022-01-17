@@ -1,5 +1,5 @@
 """Datamodels for outgoing data"""
-from typing import Optional, Set
+from typing import List, Optional, Set
 
 from pydantic import BaseModel, Field
 
@@ -119,22 +119,30 @@ class UserAccount(BaseModel):
         default=...,
         title='Account Status',
         description='Boolean value showing if the account is active (true) or disabled (false)',
-        alias='active'
+        alias='is_active'
     )
     """Account Status (True == active)"""
 
-    scopes: Set[Scope] = Field(
-        default={},
+    scopes: List[Scope] = Field(
+        default=[],
         title='Scopes',
         description='Scopes assigned to this user (also includes scopes from roles)',
         alias='scopes'
     )
     """All scopes assigned to this user"""
 
-    roles: Set[Role] = Field(
-        default={},
+    roles: List[Role] = Field(
+        default=[],
         title='Roles',
         description='All roles assigned to the user',
         alias='roles'
     )
     """Roles assigned to the user"""
+
+    class Config:
+        """Configuration for this data model"""
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""

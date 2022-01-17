@@ -1,9 +1,10 @@
 """SQLAlchemy-compatible object relational mappings for the used tables"""
+import sqlalchemy.ext.declarative
 from sqlalchemy import Column, Boolean, Integer, String, Text, ForeignKey
 from sqlalchemy.orm import relationship
 
-from .. import TableDeclarationBase
-
+# Create a public TableBase used to set up the orm models later on
+TableDeclarationBase = sqlalchemy.ext.declarative.declarative_base()
 # Options for the foreign keys
 FK_OPTIONS = {
     "onupdate": "CASCADE",
@@ -30,9 +31,6 @@ class Role(TableDeclarationBase):
     scopes = relationship("Scope", secondary='role_scopes')
     """Scopes assigned to this role"""
 
-    users = relationship("User", secondary='account_roles')
-    """Users with the role"""
-
 
 class Scope(TableDeclarationBase):
     """ORM for the table containing the available scopes"""
@@ -53,7 +51,7 @@ class Scope(TableDeclarationBase):
     """String used to identify the scope incoming OAuth2 scope strings"""
 
 
-class AccessTokens(TableDeclarationBase):
+class AccessToken(TableDeclarationBase):
     """ORM for the Authorization Tokens"""
 
     __tablename__ = "access_tokens"
@@ -62,7 +60,7 @@ class AccessTokens(TableDeclarationBase):
     token_id = Column(Integer, primary_key=True, autoincrement=True)
     """Internal id of the token"""
 
-    token = Column(String(length=36, unique=True))
+    token = Column(String(length=36), unique=True)
     """Actual token used incoming the Authorization header"""
 
     expires = Column(Integer, nullable=False)
@@ -92,9 +90,6 @@ class RefreshToken(TableDeclarationBase):
 
     access_tokens = relationship("AccessToken", secondary='refresh_token_tokens')
     """Access tokens issued via this refresh token"""
-
-    account = relationship("Account", secondary='account_refresh_tokens')
-    """Account for this refresh_token"""
 
 
 class Account(TableDeclarationBase):
@@ -127,7 +122,7 @@ class Account(TableDeclarationBase):
     roles = relationship("Role", secondary='account_roles')
     """Roles assigned to the account"""
 
-    tokens = relationship("Token", secondary='account_tokens')
+    tokens = relationship("AccessToken", secondary='account_tokens')
     """Access tokens assigned to the account"""
 
     refresh_tokens = relationship("RefreshToken", secondary='account_refresh_tokens')
@@ -139,6 +134,9 @@ class RoleToScopes(TableDeclarationBase):
 
     __tablename__ = "role_scopes"
     """Name of the association table"""
+
+    mapping_id = Column(Integer, primary_key=True, autoincrement=True)
+    """Internal ID of the mapping (needed for sqlalchemy)"""
 
     role_id = Column(Integer, ForeignKey('roles.role_id', **FK_OPTIONS))
     """ID of the role"""
@@ -153,6 +151,9 @@ class TokenToScopes(TableDeclarationBase):
     __tablename__ = "token_scopes"
     """Name of the association table"""
 
+    mapping_id = Column(Integer, primary_key=True, autoincrement=True)
+    """Internal ID of the mapping (needed for sqlalchemy)"""
+
     token_id = Column(Integer, ForeignKey('access_tokens.token_id', **FK_OPTIONS))
     """ID of the Access Token"""
 
@@ -164,6 +165,9 @@ class TokenToRefreshToken(TableDeclarationBase):
     """ORM for linking a token to a refresh token"""
 
     __tablename__ = "refresh_token_tokens"
+
+    mapping_id = Column(Integer, primary_key=True, autoincrement=True)
+    """Internal ID of the mapping (needed for sqlalchemy)"""
 
     refresh_token_id = Column(Integer, ForeignKey('refresh_tokens.refresh_token_id', **FK_OPTIONS))
     """Internal ID of the refresh token"""
@@ -178,6 +182,9 @@ class AccountToScope(TableDeclarationBase):
     __tablename__ = "account_scopes"
     """Name of the association table"""
 
+    mapping_id = Column(Integer, primary_key=True, autoincrement=True)
+    """Internal ID of the mapping (needed for sqlalchemy)"""
+
     account_id = Column(Integer, ForeignKey('accounts.account_id', **FK_OPTIONS))
     """Internal id of the account"""
 
@@ -190,6 +197,9 @@ class AccountToRoles(TableDeclarationBase):
 
     __tablename__ = "account_roles"
     """Name of the association table"""
+
+    mapping_id = Column(Integer, primary_key=True, autoincrement=True)
+    """Internal ID of the mapping (needed for sqlalchemy)"""
 
     account_id = Column(Integer, ForeignKey('accounts.account_id', **FK_OPTIONS))
     """Internal ID of the account"""
@@ -204,6 +214,9 @@ class AccountToToken(TableDeclarationBase):
     __tablename__ = "account_tokens"
     """Name of the association table"""
 
+    mapping_id = Column(Integer, primary_key=True, autoincrement=True)
+    """Internal ID of the mapping (needed for sqlalchemy)"""
+
     account_id = Column(Integer, ForeignKey('accounts.account_id', **FK_OPTIONS))
     """Internal ID of the account"""
 
@@ -216,6 +229,9 @@ class AccountToRefreshTokens(TableDeclarationBase):
 
     __tablename__ = "account_refresh_tokens"
     """Name of the association table"""
+
+    mapping_id = Column(Integer, primary_key=True, autoincrement=True)
+    """Internal ID of the mapping (needed for sqlalchemy)"""
 
     account_id = Column(Integer, ForeignKey('accounts.account_id', **FK_OPTIONS))
     """Internal ID of the account"""

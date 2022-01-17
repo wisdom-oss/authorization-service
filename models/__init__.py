@@ -30,7 +30,8 @@ class ServiceSettings(BaseSettings):
     """URI pointing the the message broker which shall be used to validate the messages"""
 
     amqp_exchange: str = Field(
-        default=...,
+        default="authorization-service",
         env='AMQP_EXCHANGE',
         alias='AMQP_EXCHANGE'
     )
+    """Name of the Fanout Exchange this service will subscribe to"""
