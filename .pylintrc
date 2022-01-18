@@ -154,7 +154,8 @@ disable=print-statement,
         exception-escape,
         comprehension-escape,
         no-self-argument,
-        too-many-instance-attributes
+        too-many-instance-attributes,
+        no-else-return
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
