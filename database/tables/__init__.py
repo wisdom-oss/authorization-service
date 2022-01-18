@@ -96,8 +96,10 @@ class RefreshToken(TableDeclarationBase):
     expires = Column(Integer, nullable=False)
     """Expiration time and date as UNIX timestamp"""
 
-    access_tokens = relationship("AccessToken", secondary='refresh_token_tokens')
-    """Access tokens issued via this refresh token"""
+    scopes = relationship("Scope", secondary='refresh_token_scopes')
+
+    user = relationship("Account", secondary='account_refresh_tokens')
+    """The user of the refresh token"""
 
 
 class Account(TableDeclarationBase):
@@ -130,9 +132,6 @@ class Account(TableDeclarationBase):
     roles = relationship("Role", secondary='account_roles')
     """Roles assigned to the account"""
 
-    refresh_tokens = relationship("RefreshToken", secondary='account_refresh_tokens')
-    """Refresh tokens assigned to the account"""
-
 
 class RoleToScopes(TableDeclarationBase):
     """ORM for linking roles to the scopes they inherit"""
@@ -160,6 +159,22 @@ class TokenToScopes(TableDeclarationBase):
     """Internal ID of the mapping (needed for sqlalchemy)"""
 
     token_id = Column(Integer, ForeignKey('access_tokens.token_id', **FK_OPTIONS))
+    """ID of the Access Token"""
+
+    scope_id = Column(Integer, ForeignKey('scopes.scope_id', **FK_OPTIONS))
+    """ID of the scope for this token"""
+
+
+class RefreshTokenToScopes(TableDeclarationBase):
+    """ORM for linking the issued tokens to the scopes they may use"""
+
+    __tablename__ = "refresh_token_scopes"
+    """Name of the association table"""
+
+    mapping_id = Column(Integer, primary_key=True, autoincrement=True)
+    """Internal ID of the mapping (needed for sqlalchemy)"""
+
+    token_id = Column(Integer, ForeignKey('refresh_tokens.refresh_token_id', **FK_OPTIONS))
     """ID of the Access Token"""
 
     scope_id = Column(Integer, ForeignKey('scopes.scope_id', **FK_OPTIONS))

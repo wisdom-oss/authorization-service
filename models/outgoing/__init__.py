@@ -124,3 +124,51 @@ class UserAccount(BaseModel):
 
         allow_population_by_field_name = True
         """Allow pydantic to use the field names to read the properties"""
+
+
+class TokenSet(BaseModel):
+    """Data model for a token set after a successful authorization attempt"""
+
+    access_token: str = Field(
+        default=...,
+        alias='accessToken',
+        description='OAuth2 Bearer Token'
+    )
+    """OAuth2 Bearer Token"""
+
+    token_type: str = Field(
+        default="bearer",
+        alias='tokenType',
+        description='Type of the OAuth2 Token'
+    )
+    """Type of the OAuth2 Token"""
+
+    expires_in: Optional[int] = Field(
+        default=3600,
+        description="Time to live of the token after it has been issued"
+    )
+    """TTL (time-to-live) of the token after it has been issued (Standard TTL: 3600)"""
+
+    refresh_token: Optional[str] = Field(
+        default=None,
+        description='Refresh token which may be used to get a new access token'
+    )
+    """Refresh token which may be used to get a new access token"""
+
+    scope: Optional[str] = Field(
+        default="",
+        description='Scopes of this token'
+    )
+    """Scope string for this token (optional if the token has the same scopes as requested)"""
+
+    class Config:
+        """Configuration for this pydantic model"""
+
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""

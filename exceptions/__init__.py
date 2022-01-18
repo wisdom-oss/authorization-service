@@ -14,7 +14,7 @@ class AuthorizationException(Exception):
             short_error: str,
             error_description: Optional[str] = None,
             http_status_code: status = status.HTTP_400_BAD_REQUEST,
-            optional_data: Optional[Any] = None
+            optional_data: Optional[Any] = ""
     ):
         """Create a new Authorization Exception
 

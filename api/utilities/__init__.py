@@ -123,3 +123,16 @@ def generate_token_set(
         refresh_token=_refresh_token.refresh_token,
         scope=_scope_string
     )
+
+
+def get_scopes_from_user(_user: database.tables.Account) -> list[str]:
+    """Get a list of scope values from the account
+
+    :param _user: The user account which shall be used
+    :type _user: database.tables.Account
+    :returns: A list of scope strings
+    """
+    _list = []
+    for _allowed_scope in _user.scopes:
+        _list.append(_allowed_scope.scope_value)
+    return _list

@@ -150,6 +150,38 @@ def get_access_token_by_token(
     return session.query(tables.AccessToken).filter(tables.AccessToken.token == token_value).first()
 
 
+# ==== Access-Token table operations ====
+def get_refresh_token(token_id: int, session: Session) -> typing.Optional[tables.RefreshToken]:
+    """Get an access token from the database by its internal id
+
+    :param token_id: Internal Access Token ID
+    :param session: Database session
+    :return: If the token exists the token, else None
+    """
+    return (session
+            .query(tables.RefreshToken)
+            .filter(tables.RefreshToken.refresh_token_id == token_id)
+            .first()
+            )
+
+
+def get_refresh_token_by_token(
+        token_value: str,
+        session: Session
+) -> typing.Optional[tables.RefreshToken]:
+    """Get an access token from the database by its actual value
+
+    :param token_value: The actual value of the access token
+    :param session: Database session
+    :return: If the token exists the token, else None
+    """
+    return (session
+            .query(tables.RefreshToken)
+            .filter(tables.RefreshToken.refresh_token == token_value)
+            .first()
+            )
+
+
 # ==== Mapping-Table operations ====
 def map_scope_to_account(
         scope_value: str,
