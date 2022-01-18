@@ -63,7 +63,7 @@ async def get_current_user(
             short_error='invalid_token',
             http_status_code=status.HTTP_401_UNAUTHORIZED
         )
-    _user: tables.Account = token_data.user
+    _user: tables.Account = token_data.user[0]
     if not _user.is_active:
         raise AuthorizationException(
             short_error='invalid_token',

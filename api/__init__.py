@@ -1,16 +1,19 @@
 """Module containing the routes and actions run when requesting a specific route"""
 import logging
-from typing import Optional
+import time
+from typing import Optional, Union
 
-from fastapi import Depends, FastAPI as fastapi_application
+from fastapi import Depends, FastAPI as fastapi_application, Form, Security
 from fastapi import Request
 from fastapi.responses import UJSONResponse
 from passlib.hash import pbkdf2_sha512 as pwd_hasher
 from py_eureka_client.eureka_client import EurekaClient
 from sqlalchemy.orm import Session
 from starlette import status
+from starlette.responses import Response
 
 import database
+from database import tables
 from exceptions import AuthorizationException
 from models import ServiceSettings, outgoing
 from . import dependencies, utilities
@@ -94,22 +97,26 @@ async def handle_authorization_exception(
     :return: A JSON response explaining the reason behind the error
     :rtype: UJSONResponse
     """
-    return UJSONResponse(
-        status_code=exc.http_status_code,
-        content={
+    _content = {
             "error":             exc.short_error,
             "error_description": exc.error_description
-        },
+        }
+    if exc.error_description is None:
+        _content.pop("error_description")
+    return UJSONResponse(
+        status_code=exc.http_status_code,
+        content=_content,
         headers={
             'WWW-Authenticate': f'Bearer {exc.optional_data}'.strip()
         }
     )
 
 
-# == Login Routes ==
+# == OAuth2 Routes ==
 @auth_service_rest.post(
     path='/oauth/token',
-    response_model=outgoing.TokenSet
+    response_model=outgoing.TokenSet,
+    response_model_exclude_none=True
 )
 async def oauth_login(
         form: dependencies.OAuth2AuthorizationRequestForm = Depends(),
@@ -209,3 +216,117 @@ async def oauth_login(
         db_session.delete(_refresh_token)
         db_session.commit()
         return utilities.generate_token_set(_refresh_token.user[0], db_session, _allowed_scopes)
+
+
+@auth_service_rest.post(
+    path='/oauth/check_token',
+    response_model=outgoing.TokenIntrospection,
+    response_model_exclude_none=True
+)
+async def oauth_token_introspection(
+        _active_user: tables.Account = Security(dependencies.get_current_user),
+        db_session: Session = Depends(database.session),
+        token: str = Form(...),
+        scope: Optional[str] = Form(None)
+) -> outgoing.TokenIntrospection:
+    """Run an introspection of a token to check its validity
+
+    The check may be run as check for the general validity. It also may be run against one or
+    more scopes which will return the validity for the scopes sent in the request
+
+    :param _active_user: The user making the request (not used here but still needed)
+    :param db_session: The database session
+    :param token: The token on which an introspection shall be executed
+    :param scope: The scopes against which the token shall be tested explicitly
+    :return: The introspection response
+    """
+    # Receive the token data from both_tables
+    _access_token_data = database.crud.get_access_token_by_token(token, db_session)
+    _refresh_token_data = database.crud.get_refresh_token_by_token(token, db_session)
+    _token_data: Union[tables.AccessToken, tables.RefreshToken]
+    if _access_token_data is not None and _refresh_token_data is None:
+        _token_data = _access_token_data
+    elif _access_token_data is None and _refresh_token_data is not None:
+        _token_data = _refresh_token_data
+    else:
+        return outgoing.TokenIntrospection(
+            active=False
+        )
+    # Now check if the token has expired
+    if time.time() >= _token_data.expires or not _token_data.user[0].is_active:
+        return outgoing.TokenIntrospection(
+            active=False
+        )
+    # Now check if the token is an access token and the active state is set correctly
+    if isinstance(_token_data, database.tables.AccessToken) and not _token_data.active:
+        return outgoing.TokenIntrospection(
+            active=False
+        )
+    # Create a list of scope values associated to the token
+    _token_scopes: list[str] = []
+    for _token_scope in _token_data.scopes:
+        _token_scopes.append(_token_scope.scope_value)
+    # Now check if the scope string was set and has any content
+    if scope is not None and scope.strip() != "":
+        # Now iterate though the scopes in the scope string anc check if the scopes are in the
+        # tokens scope.
+        if any(_scope not in _token_scopes for _scope in scope.split()):
+            return outgoing.TokenIntrospection(
+                active=False
+            )
+        # All scopes which were queried are in the tokens scopes therefore return a complete
+        # introspection response
+        return outgoing.TokenIntrospection(
+            active=True,
+            scope=scope,
+            username=_token_data.user[0].username,
+            token_type='access_token',
+            exp=_token_data.expires,
+            iat=_token_data.created if isinstance(_token_data, tables.AccessToken) else None
+        )
+    return outgoing.TokenIntrospection(
+        active=True,
+        scope=' '.join(_token_scopes),
+        username=_token_data.user[0].username,
+        token_type='access_token',
+        exp=_token_data.expires,
+        iat=_token_data.created if isinstance(_token_data, tables.AccessToken) else None
+    )
+
+
+@auth_service_rest.post(
+    path='/oauth/revoke',
+    status_code=200
+)
+async def oauth_revoke_token(
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"]),
+        db_session: Session = Depends(database.session),
+        token: str = Form(...)
+):
+    """Revoke any type of token
+
+    The revocation request will always be answered by an HTTP Code 200 code. Even if the token
+    was not found.
+
+    :param _active_user: The user making the request
+    :param db_session: The database session
+    :param token: The token which shall be revoked
+    :return:
+    """
+    # Try getting a token from both types
+    _access_token = database.crud.get_access_token_by_token(token, db_session)
+    _refresh_token = database.crud.get_refresh_token_by_token(token, db_session)
+    # Check any of the tokens were found
+    if not any([isinstance(_access_token, tables.AccessToken), isinstance(
+            _refresh_token, tables.RefreshToken)]):
+        return Response(status_code=status.HTTP_200_OK)
+    # Check if the token owner is also the requester
+    if _access_token is not None and _access_token.user[0].account_id == _active_user.account_id:
+        # Since it is the same person delete
+        db_session.delete(_access_token)
+        db_session.commit()
+    if _refresh_token is not None and _refresh_token.user[0].account_id == _active_user.account_id:
+        # Since it is the same person delete
+        db_session.delete(_refresh_token)
+        db_session.commit()
+    return Response(status_code=status.HTTP_200_OK)
