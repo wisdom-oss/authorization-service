@@ -90,7 +90,6 @@ def __check_required_tables(__db_session: DatabaseSession = next(session())):
     present
 
     :param __db_session: Database session
-    :return:
     """
     # Check if the admin scope exists in the database
     if crud.get_scope_by_value("admin", __db_session) is None:
