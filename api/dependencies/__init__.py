@@ -111,7 +111,7 @@ class OAuth2AuthorizationRequestForm:
             password: SecretStr = Form(None, min_length=1),
             refresh_token: str = Form(
                 None,
-                regex="^[0-9a-fA-F]{8}\b-([0-9a-fA-F]{4}\b-){3}[0-9a-fA-F]{12}$"
+                regex="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
             ),
             scope: str = Form("")
     ):
