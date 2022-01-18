@@ -59,7 +59,8 @@ Furthermore, the optional data will be passed in the `WWW-Authenticate` header.
 ```python
 @auth_service_rest.post(
     path='/oauth/token',
-    response_model=outgoing.TokenSet
+    response_model=outgoing.TokenSet,
+    response_model_exclude_none=True
 )
 async def oauth_login(form: dependencies.OAuth2AuthorizationRequestForm = Depends(), db_session: Session = Depends(database.session)) -> outgoing.TokenSet
 ```
@@ -79,4 +80,52 @@ during the users authorization
 **Returns**:
 
 `outgoing.TokenSet`: Token Set
+
+#### oauth\_token\_introspection
+
+```python
+@auth_service_rest.post(
+    path='/oauth/check_token',
+    response_model=outgoing.TokenIntrospection,
+    response_model_exclude_none=True
+)
+async def oauth_token_introspection(_active_user: tables.Account = Security(dependencies.get_current_user), db_session: Session = Depends(database.session), token: str = Form(...), scope: Optional[str] = Form(None)) -> outgoing.TokenIntrospection
+```
+
+Run an introspection of a token to check its validity
+
+The check may be run as check for the general validity. It also may be run against one or
+more scopes which will return the validity for the scopes sent in the request
+
+**Arguments**:
+
+- `_active_user`: The user making the request (not used here but still needed)
+- `db_session`: The database session
+- `token`: The token on which an introspection shall be executed
+- `scope`: The scopes against which the token shall be tested explicitly
+
+**Returns**:
+
+The introspection response
+
+#### oauth\_revoke\_token
+
+```python
+@auth_service_rest.post(
+    path='/oauth/revoke',
+    status_code=200
+)
+async def oauth_revoke_token(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"]), db_session: Session = Depends(database.session), token: str = Form(...))
+```
+
+Revoke any type of token
+
+The revocation request will always be answered by an HTTP Code 200 code. Even if the token
+was not found.
+
+**Arguments**:
+
+- `_active_user`: The user making the request
+- `db_session`: The database session
+- `token`: The token which shall be revoked
 
