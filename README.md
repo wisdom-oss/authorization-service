@@ -1,7 +1,7 @@
 # Authorization and User Service
 Maintainer: [Jan Eike Suchard](https://github.com/j-suchard)  
-Version: 0.2
-
+Version: 0.2  
+Further documentation: [click here](../api/init)
 
 ## System Requirements
 ### for Development

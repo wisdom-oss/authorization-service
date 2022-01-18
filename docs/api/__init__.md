@@ -37,7 +37,7 @@ Event handler for the shutdown process of the application
 
 ```python
 @auth_service_rest.exception_handler(AuthorizationException)
-async def handle_authorization_exception(_request: Request, e: AuthorizationException) -> UJSONResponse
+async def handle_authorization_exception(_request: Request, exc: AuthorizationException) -> UJSONResponse
 ```
 
 Handle the Authorization exception
@@ -47,10 +47,10 @@ Furthermore, the optional data will be passed in the `WWW-Authenticate` header.
 
 **Arguments**:
 
-- `_request`: The request in which the exception occurred in
-- `e`: The Authorization Exception
+- `_request` (`Request`): The request in which the exception occurred in
+- `exc` (`AuthorizationException`): The Authorization Exception
 
 **Returns**:
 
-A UJSON response
+`UJSONResponse`: A JSON response explaining the reason behind the error
 

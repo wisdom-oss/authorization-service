@@ -60,6 +60,9 @@ Configuration of this model
 class Scope(BaseModel)
 ```
 
+OAuth2 Scope
+
+
 #### scope\_name
 
 Name of the scope

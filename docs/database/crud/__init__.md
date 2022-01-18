@@ -6,7 +6,7 @@ title: database.crud
 Package for the CREATE/READ/UPDATE/DELETE utilities
 
 
-#### X
+#### DBObject
 
 Generic type for all database inserts
 
@@ -14,7 +14,7 @@ Generic type for all database inserts
 #### add\_to\_database
 
 ```python
-def add_to_database(obj: X, session: Session) -> X
+def add_to_database(obj: DBObject, session: Session) -> DBObject
 ```
 
 Insert a new object into the database

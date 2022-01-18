@@ -9,7 +9,7 @@ Datamodels for outgoing data
 ## Scope Objects
 
 ```python
-class Scope(BaseModel)
+class Scope(incoming.Scope)
 ```
 
 Data model for describing a scope which can be used in incoming/outgoing communication
@@ -18,21 +18,6 @@ Data model for describing a scope which can be used in incoming/outgoing communi
 #### scope\_id
 
 Internally used id of the scope
-
-
-#### scope\_name
-
-Name of the scope
-
-
-#### scope\_description
-
-Textual description of the scope
-
-
-#### scope\_value
-
-OAuth2 scope string value identifying the scope
 
 
 ## Config Objects
