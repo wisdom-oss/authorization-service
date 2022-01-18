@@ -54,3 +54,29 @@ Furthermore, the optional data will be passed in the `WWW-Authenticate` header.
 
 `UJSONResponse`: A JSON response explaining the reason behind the error
 
+#### oauth\_login
+
+```python
+@auth_service_rest.post(
+    path='/oauth/token',
+    response_model=outgoing.TokenSet
+)
+async def oauth_login(form: dependencies.OAuth2AuthorizationRequestForm = Depends(), db_session: Session = Depends(database.session)) -> outgoing.TokenSet
+```
+
+Try to receive a token set with either username/password credentials or a refresh token
+
+**Arguments**:
+
+- `form` (`OAuth2AuthorizationRequestForm`): Authorization Request Data
+- `db_session` (`Session`): Database session needed to validate the request data
+
+**Raises**:
+
+- `exceptions.AuthorizationException`: The request failed due to an error
+during the users authorization
+
+**Returns**:
+
+`outgoing.TokenSet`: Token Set
+

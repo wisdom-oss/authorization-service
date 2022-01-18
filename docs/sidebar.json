@@ -9,6 +9,13 @@
           "label": "api.dependencies",
           "type": "category"
         },
+        {
+          "items": [
+            "api/utilities/__init__"
+          ],
+          "label": "api.utilities",
+          "type": "category"
+        },
         "api/__init__"
       ],
       "label": "api",

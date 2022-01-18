@@ -121,3 +121,61 @@ Allow the reading of properties via a orm model
 Allow pydantic to use the field names to read the properties
 
 
+## TokenSet Objects
+
+```python
+class TokenSet(BaseModel)
+```
+
+Data model for a token set after a successful authorization attempt
+
+
+#### access\_token
+
+OAuth2 Bearer Token
+
+
+#### token\_type
+
+Type of the OAuth2 Token
+
+
+#### expires\_in
+
+TTL (time-to-live) of the token after it has been issued (Standard TTL: 3600)
+
+
+#### refresh\_token
+
+Refresh token which may be used to get a new access token
+
+
+#### scope
+
+Scope string for this token (optional if the token has the same scopes as requested)
+
+
+## Config Objects
+
+```python
+class Config()
+```
+
+Configuration for this pydantic model
+
+
+#### orm\_mode
+
+Allow the reading of properties via a orm model
+
+
+#### allow\_population\_by\_field\_name
+
+Allow pydantic to use the field names to read the properties
+
+
+#### allow\_population\_by\_alias
+
+Allow pydantic to use the aliases to read properties
+
+

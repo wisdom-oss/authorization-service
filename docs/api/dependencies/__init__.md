@@ -50,7 +50,7 @@ refresh_token: The refresh token used to obtain a new token set (Required if gra
 ```python
 def __init__(grant_type: str = Form(None, regex="(?:^password$|^refresh_token$)"), username: str = Form(None, min_length=1), password: SecretStr = Form(None, min_length=1), refresh_token: str = Form(
                 None,
-                regex="^[0-9a-fA-F]{8}\b-([0-9a-fA-F]{4}\b-){3}[0-9a-fA-F]{12}$"
+                regex="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
             ), scope: str = Form(""))
 ```
 

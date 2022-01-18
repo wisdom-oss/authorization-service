@@ -18,7 +18,7 @@ An error occurred during authenticating a user which led to a non 2XX response
 #### \_\_init\_\_
 
 ```python
-def __init__(short_error: str, error_description: Optional[str] = None, http_status_code: status = status.HTTP_400_BAD_REQUEST, optional_data: Optional[Any] = None)
+def __init__(short_error: str, error_description: Optional[str] = None, http_status_code: status = status.HTTP_400_BAD_REQUEST, optional_data: Optional[Any] = "")
 ```
 
 Create a new Authorization Exception

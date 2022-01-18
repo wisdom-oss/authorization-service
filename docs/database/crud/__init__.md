@@ -159,6 +159,40 @@ Get an access token from the database by its actual value
 
 If the token exists the token, else None
 
+#### get\_refresh\_token
+
+```python
+def get_refresh_token(token_id: int, session: Session) -> typing.Optional[tables.RefreshToken]
+```
+
+Get an access token from the database by its internal id
+
+**Arguments**:
+
+- `token_id`: Internal Access Token ID
+- `session`: Database session
+
+**Returns**:
+
+If the token exists the token, else None
+
+#### get\_refresh\_token\_by\_token
+
+```python
+def get_refresh_token_by_token(token_value: str, session: Session) -> typing.Optional[tables.RefreshToken]
+```
+
+Get an access token from the database by its actual value
+
+**Arguments**:
+
+- `token_value`: The actual value of the access token
+- `session`: Database session
+
+**Returns**:
+
+If the token exists the token, else None
+
 #### map\_scope\_to\_account
 
 ```python

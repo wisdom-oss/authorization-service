@@ -157,9 +157,9 @@ Actual refresh token
 Expiration time and date as UNIX timestamp
 
 
-#### access\_tokens
+#### user
 
-Access tokens issued via this refresh token
+The user of the refresh token
 
 
 ## Account Objects
@@ -216,11 +216,6 @@ Scopes assigned to the account
 Roles assigned to the account
 
 
-#### refresh\_tokens
-
-Refresh tokens assigned to the account
-
-
 ## RoleToScopes Objects
 
 ```python
@@ -254,6 +249,35 @@ ID of the scope ofr this role
 
 ```python
 class TokenToScopes(TableDeclarationBase)
+```
+
+ORM for linking the issued tokens to the scopes they may use
+
+
+#### \_\_tablename\_\_
+
+Name of the association table
+
+
+#### mapping\_id
+
+Internal ID of the mapping (needed for sqlalchemy)
+
+
+#### token\_id
+
+ID of the Access Token
+
+
+#### scope\_id
+
+ID of the scope for this token
+
+
+## RefreshTokenToScopes Objects
+
+```python
+class RefreshTokenToScopes(TableDeclarationBase)
 ```
 
 ORM for linking the issued tokens to the scopes they may use
