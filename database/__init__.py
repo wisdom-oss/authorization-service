@@ -150,4 +150,3 @@ def initialise_databases():
     else:
         TableDeclarationBase.metadata.create_all(bind=__engine)
         __check_required_tables()
-

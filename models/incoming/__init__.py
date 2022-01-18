@@ -4,6 +4,8 @@ from typing import List, Optional, Set
 from pydantic import BaseModel, Field, SecretStr
 from passlib import pwd
 
+# pylint: disable=too-few-public-methods
+
 
 class NewUserAccount(BaseModel):
     """New user account. This model only needs some basic information"""
@@ -57,6 +59,8 @@ class NewUserAccount(BaseModel):
 
 
 class Scope(BaseModel):
+    # pylint: disable=R0801
+    """OAuth2 Scope"""
     scope_name: str = Field(
         default=...,
         title='Name',

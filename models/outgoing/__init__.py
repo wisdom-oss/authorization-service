@@ -3,8 +3,11 @@ from typing import List, Optional, Set
 
 from pydantic import BaseModel, Field
 
+# pylint: disable=too-few-public-methods
+from models import incoming
 
-class Scope(BaseModel):
+
+class Scope(incoming.Scope):
     """Data model for describing a scope which can be used in incoming/outgoing communication"""
     scope_id: int = Field(
         default=...,
@@ -13,31 +16,6 @@ class Scope(BaseModel):
         alias='id'
     )
     """Internally used id of the scope"""
-
-    scope_name: str = Field(
-        default=...,
-        title='Name',
-        description='The name of the scope given by the creator',
-        alias='name'
-    )
-    """Name of the scope"""
-
-    scope_description: str = Field(
-        default='',
-        title='Description',
-        description='Textual description of the scope. This may contain hint as to what this '
-                    'scope may be used for',
-        alias='description'
-    )
-    """Textual description of the scope"""
-
-    scope_value: str = Field(
-        default=...,
-        title='Value',
-        description='The value represents the scope in a OAuth2 scope string',
-        alias='value'
-    )
-    """OAuth2 scope string value identifying the scope"""
 
     class Config:
         """Configuration of this model"""

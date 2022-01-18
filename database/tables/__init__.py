@@ -13,6 +13,8 @@ FK_OPTIONS = {
 """Default options for the foreign key relations"""
 
 
+# pylint: disable=too-few-public-methods
+
 class Role(TableDeclarationBase):
     """ORM mapping for the table containing the used roles"""
 

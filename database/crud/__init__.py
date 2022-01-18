@@ -9,8 +9,8 @@ from models.incoming import NewUserAccount
 
 from .. import tables
 
-X = typing.TypeVar(
-    'X', tables.Account, tables.Scope, tables.Role,
+DBObject = typing.TypeVar(
+    'DBObject', tables.Account, tables.Scope, tables.Role,
     tables.AccessToken, tables.RefreshToken, tables.AccountToRoles,
     tables.AccountToScope, tables.AccountToToken,
     tables.AccountToRefreshTokens, tables.RoleToScopes,
@@ -19,7 +19,7 @@ X = typing.TypeVar(
 """Generic type for all database inserts"""
 
 
-def add_to_database(obj: X, session: Session) -> X:
+def add_to_database(obj: DBObject, session: Session) -> DBObject:
     """Insert a new object into the database
 
     :param obj: Object which shall be inserted
@@ -175,9 +175,8 @@ def map_scope_to_account(
             scope_id=scope.scope_id
         )
         return add_to_database(_assignment_entry, session)
-    else:
-        # Return None to show that no scope with this name exists
-        return None
+    # Return None to show that no scope with this name exists
+    return None
 
 
 def map_role_to_account(role_name: str, account_id: int, session: Session):
@@ -202,6 +201,5 @@ def map_role_to_account(role_name: str, account_id: int, session: Session):
             role_id=role.role_id
         )
         return add_to_database(_assignment_entry, session)
-    else:
-        # No role with that name exists
-        return None
+    # No role with that name exists
+    return None

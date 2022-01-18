@@ -17,7 +17,7 @@ auth_service_rest = fastapi_application()
 # Create a logger for the API and its routes
 __logger = logging.getLogger('API')
 # Get the service settings
-__settings = ServiceSettings()
+__settings: Optional[ServiceSettings] = None
 # Create a service registry client
 __service_registry_client: Optional[EurekaClient] = None
 
@@ -32,7 +32,9 @@ def api_startup():
     # Get a logger for this event
     __log = logging.getLogger('API.startup')
     # Enable the global usage of the service settings and the service registry client
-    global __settings, __service_registry_client
+    global __settings, __service_registry_client  # pylint: disable=invalid-name, global-statement
+    # Read the settings
+    __settings = ServiceSettings()
     # Create a new service registry client
     __service_registry_client = EurekaClient(
         eureka_server=__settings.service_registry_url,
@@ -55,11 +57,12 @@ def api_startup():
 
 @auth_service_rest.on_event('shutdown')
 def api_shutdown():
+    # pylint: disable=global-variable-not-assigned
     """Event handler for the shutdown process of the application"""
     # Get a logger for this event
     __log = logging.getLogger('API.startup')
     # Enable the global usage of the registry client
-    global __service_registry_client
+    global __service_registry_client  # pylint: disable=invalid-name
     # Stop the client and deregister the service
     __service_registry_client.stop()
 
@@ -68,7 +71,7 @@ def api_shutdown():
 @auth_service_rest.exception_handler(AuthorizationException)
 async def handle_authorization_exception(
         _request: Request,
-        e: AuthorizationException
+        exc: AuthorizationException
 ) -> UJSONResponse:
     """Handle the Authorization exception
 
@@ -76,16 +79,19 @@ async def handle_authorization_exception(
     Furthermore, the optional data will be passed in the `WWW-Authenticate` header.
 
     :param _request: The request in which the exception occurred in
-    :param e: The Authorization Exception
-    :return: A UJSON response
+    :type _request: Request
+    :param exc: The Authorization Exception
+    :type exc: AuthorizationException
+    :return: A JSON response explaining the reason behind the error
+    :rtype: UJSONResponse
     """
     return UJSONResponse(
-        status_code=e.http_status_code,
+        status_code=exc.http_status_code,
         content={
-            "error": e.short_error,
-            "error_description": e.error_description
+            "error":             exc.short_error,
+            "error_description": exc.error_description
         },
         headers={
-            'WWW-Authenticate': f'Bearer {e.optional_data}'.strip()
+            'WWW-Authenticate': f'Bearer {exc.optional_data}'.strip()
         }
     )

@@ -86,6 +86,8 @@ async def get_current_user(
 
 
 class OAuth2AuthorizationRequestForm:
+    # pylint: disable=too-few-public-methods
+
     """
     This dependency will create the following Form request parameters in the endpoint using it
 

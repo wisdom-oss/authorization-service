@@ -23,9 +23,10 @@ class AuthorizationException(Exception):
         :param http_status_code: HTTP Status code which shall be sent back by the error handler
         :param optional_data: Any optional data which shall be sent witch the error handler
         """
+        super().__init__()
         self.short_error = short_error
-        self.error_description = error_description,
-        self.http_status_code = http_status_code,
+        self.error_description = error_description
+        self.http_status_code = http_status_code
         self.optional_data = optional_data
 
 
@@ -34,4 +35,3 @@ class ObjectNotFoundException(Exception):
     An entry was not found in the database. This will trigger an HTTP Status 400 in the HTTP
     application part.
     """
-    pass
