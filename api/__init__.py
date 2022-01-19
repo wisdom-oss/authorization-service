@@ -491,3 +491,29 @@ async def users_update_user_information(
         # Refresh the changed user
         db_session.refresh(_user)
     return _user
+
+
+@auth_service_rest.delete(
+    path='/users/{user_id}'
+)
+async def users_delete(
+        user_id: int,
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Delete a user by its internal id
+
+    :param user_id: Account ID of the account which shall be deleted
+    :param _active_user: Currently active user
+    :param db_session: Database session
+    :return: A `200 OK` response if the user was deleted. If the user was not found 404
+    """
+    # Try getting a user from the database
+    _user = database.crud.get_user(user_id, db_session)
+    # If a user was found delete it
+    if isinstance(_user, tables.Account):
+        db_session.delete(_user)
+        db_session.commit()
+        return Response()
+    # Since no user was found return a 404
+    return Response(status_code=status.HTTP_404_NOT_FOUND)
