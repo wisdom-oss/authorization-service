@@ -72,7 +72,7 @@ def api_shutdown():
     # pylint: disable=global-variable-not-assigned
     """Event handler for the shutdown process of the application"""
     # Get a logger for this event
-    __log = logging.getLogger('API.startup')
+    __log = logging.getLogger('API.shutdown')
     # Enable the global usage of the registry client
     global __service_registry_client  # pylint: disable=invalid-name
     # Stop the client and deregister the service
@@ -330,3 +330,20 @@ async def oauth_revoke_token(
         db_session.delete(_refresh_token)
         db_session.commit()
     return Response(status_code=status.HTTP_200_OK)
+
+
+# == User operation Routes ==
+@auth_service_rest.get(
+    path='/users/me',
+    response_model=outgoing.UserAccount,
+    response_model_exclude_none=True
+)
+async def users_get_own_account_info(
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"]),
+):
+    """Get information about the authorized user making this request
+
+    :param _active_user: The user making the request
+    :return: The account information
+    """
+    return outgoing.UserAccount.from_orm(_active_user)

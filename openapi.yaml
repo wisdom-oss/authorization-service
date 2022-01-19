@@ -69,26 +69,13 @@ components:
           type: integer
           description: UNIX timestamp of the last logged login
         roles:
-          type: object
-          description: Map of the roles of the user to the role name
-          additionalProperties:
-            type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
         scopes:
-          type: string
-          description: Map of the scopes of the user to the descriptions of the scope
-          additionalProperties:
-            type: string
-      example:
-        user_id: 42
-        firstName: John
-        lastName: Doe
-        username: john.doe
-        password: '**********'
-        last_login: null
-        roles:
-          5: Example Role
-        scopes:
-          me: Read information about the own account
+          type: array
+          items:
+            $ref: '#/components/schemas/Scope'
 
   securitySchemes:
     authorization:
@@ -532,14 +519,6 @@ paths:
                     type: integer
                 scopes:
                   type: string
-              example:
-                user_id: 42
-                firstName: John
-                lastName: Doe
-                username: john.doe
-                last_login: null
-                roles: [1]
-                scopes: me admin
       responses:
         204:
           description: Successfully updated the user
