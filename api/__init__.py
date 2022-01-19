@@ -517,3 +517,21 @@ async def users_delete(
         return Response()
     # Since no user was found return a 404
     return Response(status_code=status.HTTP_404_NOT_FOUND)
+
+
+@auth_service_rest.get(
+    path='/users',
+    response_model=list[outgoing.UserAccount],
+    response_model_exclude_none=True
+)
+async def users_get_all(
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Get a list of all user accounts
+
+    :param _active_user:
+    :param db_session:
+    :return:
+    """
+    return db_session.query(tables.Account).all()
