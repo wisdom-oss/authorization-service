@@ -150,6 +150,15 @@ def get_access_token_by_token(
     return session.query(tables.AccessToken).filter(tables.AccessToken.token == token_value).first()
 
 
+def delete_access_token(token_id: int, session: Session):
+    """Delete an access token from the database
+
+    :param token_id:
+    :param session:
+    :return:
+    """
+    session.query(tables.AccessToken).filter(tables.AccessToken.token_id == token_id).delete()
+
 # ==== Access-Token table operations ====
 def get_refresh_token(token_id: int, session: Session) -> typing.Optional[tables.RefreshToken]:
     """Get an access token from the database by its internal id
@@ -182,6 +191,16 @@ def get_refresh_token_by_token(
             )
 
 
+def delete_refresh_token(token_id: int, session: Session):
+    """Delete an access token from the database
+
+    :param token_id:
+    :param session:
+    :return:
+    """
+    (session
+     .query(tables.RefreshToken)
+     .filter(tables.RefreshToken.refresh_token_id == token_id).delete())
 # ==== Mapping-Table operations ====
 def map_scope_to_account(
         scope_value: str,

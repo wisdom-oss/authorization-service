@@ -16,7 +16,7 @@ from starlette.responses import Response
 import database
 from database import tables
 from exceptions import AuthorizationException
-from models import ServiceSettings, outgoing
+from models import ServiceSettings, incoming, outgoing
 from . import dependencies, utilities
 
 auth_service_rest = fastapi_application()
@@ -341,7 +341,7 @@ async def oauth_revoke_token(
 )
 async def users_get_own_account_info(
         _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"])
-):
+) -> outgoing.UserAccount:
     """Get information about the authorized user making this request
 
     :param _active_user: The user making the request
@@ -360,7 +360,7 @@ async def user_update_own_account_password(
         db_session: Session = Depends(database.session),
         old_password: SecretStr = Body(..., embed=True),
         new_password: SecretStr = Body(..., embed=True)
-):
+) -> outgoing.UserAccount:
     """Allow the current user to update the password assigned to the account
 
     :param _active_user: The user whose password shall be updated
@@ -384,3 +384,110 @@ async def user_update_own_account_password(
     db_session.refresh(_active_user)
     # Return the user
     return outgoing.UserAccount.from_orm(_active_user)
+
+
+@auth_service_rest.get(
+    path='/users/{user_id}',
+    response_model=outgoing.UserAccount,
+    response_model_exclude_none=True,
+    response_model_by_alias=True
+)
+async def users_get_user_information(
+        user_id: int,
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+) -> outgoing.UserAccount:
+    """Get information about a specific user account by its internal id
+
+    :param user_id: The internal account id
+    :param _active_user: The user making the request
+    :param db_session: The database session for retrieving the account data
+    :return: The account data
+    """
+    return database.crud.get_user(user_id, db_session)
+
+
+@auth_service_rest.patch(
+    path='/users/{user_id}',
+    response_model=outgoing.UserAccount,
+    response_model_exclude_none=True,
+    response_model_by_alias=True
+)
+async def users_update_user_information(
+        user_id: int,
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session),
+        update_info: incoming.UserUpdate = Body(...)
+) -> Union[outgoing.UserAccount, Response]:
+    """Update a users account information
+
+    Since this is an admin endpoint no additional verification is necessary to change passwords.
+    Use with caution
+
+    :param user_id: The id of the user which shall be updated
+    :param _active_user: The user making the request
+    :param db_session: The database session used to manipulate the user
+    :param update_info: The new account information
+    :return: The updated account information
+    """
+    # Check if the to be manipulated user exists
+    _user = database.crud.get_user(user_id, db_session)
+    if _user is None:
+        return Response(status_code=status.HTTP_404_NOT_FOUND)
+    # Save if anything was changed to remove all access and refresh tokens to ensure a reload of the
+    # data later on
+    _information_changed = False
+    # Start manipulating the user
+    if update_info.first_name is not None and update_info.first_name.strip() != "":
+        _information_changed = True
+        _user.first_name = update_info.first_name.strip()
+    if update_info.last_name is not None and update_info.last_name.strip() != "":
+        _information_changed = True
+        _user.last_name = update_info.last_name.strip()
+    if update_info.username is not None and update_info.username.strip() != "":
+        _information_changed = True
+        _user.username = update_info.username.strip()
+    if update_info.password is not None and update_info.password.get_secret_value() != "":
+        _information_changed = True
+        _user.password = pwd_hasher.hash(update_info.password.get_secret_value())
+    if update_info.scopes is not None and update_info.scopes.strip() != "":
+        # Delete the old scope assignments
+        (db_session
+         .query(tables.AccountToScope)
+         .filter(tables.AccountToScope.account_id == user_id)
+         .delete())
+        # Now assign the new scopes
+        for scope in update_info.scopes.split():
+            database.crud.map_scope_to_account(scope, _user.account_id, db_session)
+        _information_changed = True
+    if update_info.roles is not None and len(update_info.roles) > 0:
+        # Delete the old role assignments
+        (db_session
+         .query(tables.AccountToRoles)
+         .filter(tables.AccountToRoles.account_id == user_id)
+         .delete())
+        # Now assign the new scopes
+        for role in update_info.roles:
+            database.crud.map_role_to_account(role, _user.account_id, db_session)
+        _information_changed = True
+    # If any information was changed commit the changes and delete all tokens which are owned by
+    # the user
+    if _information_changed:
+        db_session.commit()
+        # Remove all access token assignments from the database
+        _assignments = (db_session
+                        .query(tables.AccountToToken)
+                        .filter(tables.AccountToToken.account_id == _user.account_id))
+        for assignment in _assignments:
+            database.crud.delete_access_token(assignment.token_id, db_session)
+        # Remove all refresh token assignments from the database
+        _assignments = (db_session
+                        .query(tables.AccountToRefreshTokens)
+                        .filter(tables.AccountToRefreshTokens.account_id == _user.account_id))
+        for assignment in _assignments:
+            database.crud.delete_refresh_token(assignment.refresh_token_id, db_session)
+        # Commit those changes
+        db_session.commit()
+        # Refresh the changed user
+        db_session.refresh(_user)
+    return _user

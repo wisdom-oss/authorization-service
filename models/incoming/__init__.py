@@ -90,3 +90,56 @@ class Scope(BaseModel):
         """Configuration of this model"""
         allow_population_by_field_name = True
         allow_population_by_alias = True
+
+
+class UserUpdate(BaseModel):
+    """A dataclass making all user account information of the new user optional"""
+    first_name: Optional[str] = Field(
+        default=None,
+        title='First Name',
+        description='The first name(s) of the newly created user',
+        alias='firstName',
+        min_length=1
+    )
+    """First name(s) of the new user"""
+
+    last_name: Optional[str] = Field(
+        default=None,
+        title='Last name',
+        alias='lastName',
+        description='The last name(s) of the newly created user'
+    )
+    """Last name(s) of the new user"""
+
+    username: Optional[str] = Field(
+        default=None,
+        title='Username'
+    )
+    """Username of the user"""
+
+    password: Optional[SecretStr] = Field(
+        default=None,
+        title='Password',
+        description='The password of the new user. This password is not retrievable via any '
+                    'incoming or database query'
+    )
+    """Password of the new user"""
+
+    scopes: Optional[str] = Field(
+        default=None,
+        title='Scopes',
+        description='The scopes this user may use'
+    )
+    """Scopes of the new users"""
+
+    roles: Optional[Set[str]] = Field(
+        default=None,
+        title='Roles',
+        description='The roles assigned to the user during the creation of the account'
+    )
+    """Names of the roles which shall be assigned to the new user"""
+
+    class Config:
+        """Configuration of this model"""
+        allow_population_by_field_name = True
+        allow_population_by_alias = True

@@ -100,11 +100,11 @@ class UserAccount(BaseModel):
     )
     """Username for this account"""
 
-    active: bool = Field(
+    is_active: bool = Field(
         default=...,
         title='Account Status',
         description='Boolean value showing if the account is active (true) or disabled (false)',
-        alias='is_active'
+        alias='active'
     )
     """Account Status (True == active)"""
 
