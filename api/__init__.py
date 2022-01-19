@@ -3,11 +3,12 @@ import logging
 import time
 from typing import Optional, Union
 
-from fastapi import Depends, FastAPI as fastapi_application, Form, Security
+from fastapi import Body, Depends, FastAPI as fastapi_application, Form, Security
 from fastapi import Request
 from fastapi.responses import UJSONResponse
 from passlib.hash import pbkdf2_sha512 as pwd_hasher
 from py_eureka_client.eureka_client import EurekaClient
+from pydantic import SecretStr
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import Response
@@ -339,11 +340,47 @@ async def oauth_revoke_token(
     response_model_exclude_none=True
 )
 async def users_get_own_account_info(
-        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"]),
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"])
 ):
     """Get information about the authorized user making this request
 
     :param _active_user: The user making the request
     :return: The account information
     """
+    return outgoing.UserAccount.from_orm(_active_user)
+
+
+@auth_service_rest.patch(
+    path='/users/me',
+    response_model=outgoing.UserAccount,
+    response_model_exclude_none=True
+)
+async def user_update_own_account_password(
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"]),
+        db_session: Session = Depends(database.session),
+        old_password: SecretStr = Body(..., embed=True),
+        new_password: SecretStr = Body(..., embed=True)
+):
+    """Allow the current user to update the password assigned to the account
+
+    :param _active_user: The user whose password shall be updated
+    :param db_session: Database connection used for changing the password
+    :param old_password: The old password needed for confirming the password change
+    :param new_password: The new password which shall be set
+    :return: The account after the password change
+    """
+    # Check if the old password matches the one on record
+    if not pwd_hasher.verify(old_password.get_secret_value(), _active_user.password):
+        raise AuthorizationException(
+            short_error='invalid_grant',
+            error_description='The password confirmation did not match the password on record',
+            http_status_code=status.HTTP_403_FORBIDDEN
+        )
+    # Now update the password
+    _active_user.password = pwd_hasher.hash(new_password.get_secret_value())
+    # Now commit the changes in the database
+    db_session.commit()
+    # Now refresh the user account
+    db_session.refresh(_active_user)
+    # Return the user
     return outgoing.UserAccount.from_orm(_active_user)
