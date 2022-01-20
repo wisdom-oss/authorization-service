@@ -672,3 +672,21 @@ async def scopes_delete(
         raise ObjectNotFoundException
     db_session.delete(_scope)
     db_session.commit()
+
+
+@auth_service_rest.get(
+    path='/scopes',
+    response_model=list[outgoing.Scope],
+    response_model_exclude_none=True
+)
+async def scopes_get_all(
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+) -> list[tables.Scope]:
+    """Get a list of all scopes currently in the system
+
+    :param _active_user: The user trying to make this request
+    :param db_session: The database session used to retrieve all elements
+    :return: A list of all scopes
+    """
+    return db_session.query(tables.Scope).all()
