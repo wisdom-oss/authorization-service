@@ -87,3 +87,51 @@ class Config()
 Configuration of this model
 
 
+## UserUpdate Objects
+
+```python
+class UserUpdate(BaseModel)
+```
+
+A dataclass making all user account information of the new user optional
+
+
+#### first\_name
+
+First name(s) of the new user
+
+
+#### last\_name
+
+Last name(s) of the new user
+
+
+#### username
+
+Username of the user
+
+
+#### password
+
+Password of the new user
+
+
+#### scopes
+
+Scopes of the new users
+
+
+#### roles
+
+Names of the roles which shall be assigned to the new user
+
+
+## Config Objects
+
+```python
+class Config()
+```
+
+Configuration of this model
+
+

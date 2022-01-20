@@ -159,6 +159,19 @@ Get an access token from the database by its actual value
 
 If the token exists the token, else None
 
+#### delete\_access\_token
+
+```python
+def delete_access_token(token_id: int, session: Session)
+```
+
+Delete an access token from the database
+
+**Arguments**:
+
+- `token_id`: 
+- `session`: 
+
 #### get\_refresh\_token
 
 ```python
@@ -192,6 +205,19 @@ Get an access token from the database by its actual value
 **Returns**:
 
 If the token exists the token, else None
+
+#### delete\_refresh\_token
+
+```python
+def delete_refresh_token(token_id: int, session: Session)
+```
+
+Delete an access token from the database
+
+**Arguments**:
+
+- `token_id`: 
+- `session`: 
 
 #### map\_scope\_to\_account
 

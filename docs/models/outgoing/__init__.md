@@ -102,7 +102,7 @@ Last name(s) of the person associated to this account
 Username for this account
 
 
-#### active
+#### is\_active
 
 Account Status (True == active)
 
