@@ -690,3 +690,27 @@ async def scopes_get_all(
     :return: A list of all scopes
     """
     return db_session.query(tables.Scope).all()
+
+
+# == Role Operation Routes ==
+@auth_service_rest.get(
+    path='/roles/{role_id}',
+    response_model=outgoing.Role,
+    response_model_exclude_none=True
+)
+async def roles_get_information(
+        role_id: int,
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+) -> tables.Role:
+    """Retrieve information about a specific role
+
+    :param role_id: The role which shall be returned
+    :param _active_user: The user making the request
+    :param db_session: The database session used to retrieve the role
+    :return: The Role which was queried
+    """
+    _role = database.crud.get_role(role_id, db_session)
+    if _role is None:
+        raise ObjectNotFoundException
+    return _role

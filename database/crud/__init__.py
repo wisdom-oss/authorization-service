@@ -160,7 +160,7 @@ def delete_access_token(token_id: int, session: Session):
     session.query(tables.AccessToken).filter(tables.AccessToken.token_id == token_id).delete()
 
 
-# ==== Access-Token table operations ====
+# ==== Refresh-Token table operations ====
 def get_refresh_token(token_id: int, session: Session) -> typing.Optional[tables.RefreshToken]:
     """Get an access token from the database by its internal id
 
@@ -203,6 +203,16 @@ def delete_refresh_token(token_id: int, session: Session):
      .query(tables.RefreshToken)
      .filter(tables.RefreshToken.refresh_token_id == token_id).delete())
 
+
+# ==== Role-Table operations ====
+def get_role(role_id: int, session: Session) -> tables.Role:
+    """Get a role by its id
+
+    :param role_id: The internal role id
+    :param session: The database session used to retrieve the role
+    :return: The role if it was found, else None
+    """
+    return session.query(tables.Role).filter(tables.Role.role_id == role_id).first()
 
 # ==== Mapping-Table operations ====
 def map_scope_to_account(

@@ -65,6 +65,14 @@ class Role(BaseModel):
     )
     """Scopes assigned to the role"""
 
+    class Config:
+        """Configuration for this data model"""
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
 
 class UserAccount(BaseModel):
     """Datamodel describing the outgoing data about a user account"""
