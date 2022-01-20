@@ -15,8 +15,8 @@ from starlette import status
 from starlette.responses import Response
 
 import database
-from database import tables
-from exceptions import AuthorizationException
+from database import Scope, tables
+from exceptions import AuthorizationException, ObjectNotFoundException
 from models import ServiceSettings, incoming, outgoing
 from . import dependencies, utilities
 
@@ -111,6 +111,27 @@ async def handle_authorization_exception(
         headers={
             'WWW-Authenticate': f'Bearer {exc.optional_data}'.strip()
         }
+    )
+
+@auth_service_rest.exception_handler(ObjectNotFoundException)
+async def handle_object_not_found_exception(
+        _request: Request,
+        _exc: ObjectNotFoundException
+) -> UJSONResponse:
+    """Handle the ObjectNotFound exception
+
+    :param _request: The request in which the exception occurred in
+    :type _request: Request
+    :param _exc: The ObjectNotFound Exception
+    :type _exc: ObjectNotFoundException
+    :return: A JSON response explaining the reason behind the error
+    :rtype: UJSONResponse
+    """
+    return UJSONResponse(
+        content={
+            "error": "The requested object was not found. Please check your request"
+        },
+        status_code=status.HTTP_404_NOT_FOUND
     )
 
 
@@ -405,7 +426,10 @@ async def users_get_user_information(
     :param db_session: The database session for retrieving the account data
     :return: The account data
     """
-    return database.crud.get_user(user_id, db_session)
+    _user = database.crud.get_user(user_id, db_session)
+    if _user is None:
+        raise ObjectNotFoundException
+    return _user
 
 
 @auth_service_rest.patch(
@@ -434,7 +458,7 @@ async def users_update_user_information(
     # Check if the to be manipulated user exists
     _user = database.crud.get_user(user_id, db_session)
     if _user is None:
-        return Response(status_code=status.HTTP_404_NOT_FOUND)
+        raise ObjectNotFoundException
     # Save if anything was changed to remove all access and refresh tokens to ensure a reload of the
     # data later on
     _information_changed = False
@@ -516,8 +540,8 @@ async def users_delete(
         db_session.delete(_user)
         db_session.commit()
         return Response(status_code=status.HTTP_204_NO_CONTENT)
-    # Since no user was found return a 404
-    return Response(status_code=status.HTTP_404_NOT_FOUND)
+    # Since no user was found return a 404 via the object not found exception
+    raise ObjectNotFoundException
 
 
 @auth_service_rest.get(
@@ -562,3 +586,27 @@ async def users_add(
         return _user
     except sqlalchemy.exc.IntegrityError:
         return Response(status_code=status.HTTP_409_CONFLICT)
+
+
+# == Scope Operation Routes ==
+@auth_service_rest.get(
+    path='/scopes/{scope_id}',
+    response_model=outgoing.Scope,
+    response_model_exclude_none=True
+)
+async def scopes_get_scope_information(
+        scope_id: int,
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+) -> Union[Response, Scope]:
+    """Get information about a scope by its internal id
+
+    :param scope_id: The internal id of the scope
+    :param _active_user: The administrator making this request
+    :param db_session: Database session used to retrieve the scope data
+    :return: The requested scope if it was found
+    """
+    _scope = database.crud.get_scope(scope_id, db_session)
+    if _scope is None:
+        raise ObjectNotFoundException
+    return _scope
