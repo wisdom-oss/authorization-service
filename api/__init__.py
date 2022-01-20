@@ -447,7 +447,8 @@ async def users_update_user_information(
     """Update a users account information
 
     Since this is an admin endpoint no additional verification is necessary to change passwords.
-    Use with caution
+    Use with caution. Calling this method will result in a logout of the affected user (even
+    though no information has changed)
 
     :param user_id: The id of the user which shall be updated
     :param _active_user: The user making the request
@@ -459,9 +460,6 @@ async def users_update_user_information(
     _user = database.crud.get_user(user_id, db_session)
     if _user is None:
         raise ObjectNotFoundException
-    # Save if anything was changed to remove all access and refresh tokens to ensure a reload of the
-    # data later on
-    _information_changed = False
     # Start manipulating the user
     if utilities.field_may_be_update_source(update_info.first_name) != "":
         _user.first_name = update_info.first_name.strip()
