@@ -136,3 +136,16 @@ def get_scopes_from_user(_user: database.tables.Account) -> list[str]:
     for _allowed_scope in _user.scopes:
         _list.append(_allowed_scope.scope_value)
     return _list
+
+
+def field_may_be_update_source(new_value: Optional[str]) -> bool:
+    """Check if the field may be used for an update
+
+    The check is done by testing if the str is actually None and stripping the string does not
+    result in an empty string. This shall not be used for passwords, since those values may not
+    be stripped of any whitespaces
+
+    :param new_value: The value the field shall have after the update
+    :return: True if the field may be used, False if it may not be used
+    """
+    return new_value is not None and new_value.strip() != ""

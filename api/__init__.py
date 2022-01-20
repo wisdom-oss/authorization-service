@@ -463,19 +463,15 @@ async def users_update_user_information(
     # data later on
     _information_changed = False
     # Start manipulating the user
-    if update_info.first_name is not None and update_info.first_name.strip() != "":
-        _information_changed = True
+    if utilities.field_may_be_update_source(update_info.first_name) != "":
         _user.first_name = update_info.first_name.strip()
-    if update_info.last_name is not None and update_info.last_name.strip() != "":
-        _information_changed = True
+    if utilities.field_may_be_update_source(update_info.last_name) != "":
         _user.last_name = update_info.last_name.strip()
-    if update_info.username is not None and update_info.username.strip() != "":
-        _information_changed = True
+    if utilities.field_may_be_update_source(update_info.username) != "":
         _user.username = update_info.username.strip()
     if update_info.password is not None and update_info.password.get_secret_value() != "":
-        _information_changed = True
         _user.password = pwd_hasher.hash(update_info.password.get_secret_value())
-    if update_info.scopes is not None and update_info.scopes.strip() != "":
+    if utilities.field_may_be_update_source(update_info.scopes):
         # Delete the old scope assignments
         (db_session
          .query(tables.AccountToScope)
@@ -484,7 +480,6 @@ async def users_update_user_information(
         # Now assign the new scopes
         for scope in update_info.scopes.split():
             database.crud.map_scope_to_account(scope, _user.account_id, db_session)
-        _information_changed = True
     if update_info.roles is not None and len(update_info.roles) > 0:
         # Delete the old role assignments
         (db_session
@@ -494,27 +489,27 @@ async def users_update_user_information(
         # Now assign the new scopes
         for role in update_info.roles:
             database.crud.map_role_to_account(role, _user.account_id, db_session)
-        _information_changed = True
+    if update_info.active is not None:
+        _user.is_active = update_info.active
     # If any information was changed commit the changes and delete all tokens which are owned by
     # the user
-    if _information_changed:
-        db_session.commit()
-        # Remove all access token assignments from the database
-        _assignments = (db_session
-                        .query(tables.AccountToToken)
-                        .filter(tables.AccountToToken.account_id == _user.account_id))
-        for assignment in _assignments:
-            database.crud.delete_access_token(assignment.token_id, db_session)
-        # Remove all refresh token assignments from the database
-        _assignments = (db_session
-                        .query(tables.AccountToRefreshTokens)
-                        .filter(tables.AccountToRefreshTokens.account_id == _user.account_id))
-        for assignment in _assignments:
-            database.crud.delete_refresh_token(assignment.refresh_token_id, db_session)
-        # Commit those changes
-        db_session.commit()
-        # Refresh the changed user
-        db_session.refresh(_user)
+    db_session.commit()
+    # Remove all access tokens from the database for this user
+    _assignments = (db_session
+                    .query(tables.AccountToToken)
+                    .filter(tables.AccountToToken.account_id == _user.account_id))
+    for assignment in _assignments:
+        database.crud.delete_access_token(assignment.token_id, db_session)
+    # Remove all refresh tokens from the database for this user
+    _assignments = (db_session
+                    .query(tables.AccountToRefreshTokens)
+                    .filter(tables.AccountToRefreshTokens.account_id == _user.account_id))
+    for assignment in _assignments:
+        database.crud.delete_refresh_token(assignment.refresh_token_id, db_session)
+    # Commit those changes
+    db_session.commit()
+    # Refresh the changed user
+    db_session.refresh(_user)
     return _user
 
 
