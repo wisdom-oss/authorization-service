@@ -371,3 +371,25 @@ to it at the deletion time
 - `_active_user`: The administrator making the call
 - `db_session`: The database session used for deleting the scope
 
+#### scopes\_get\_all
+
+```python
+@auth_service_rest.get(
+    path='/scopes',
+    response_model=list[outgoing.Scope],
+    response_model_exclude_none=True
+)
+async def scopes_get_all(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> list[tables.Scope]
+```
+
+Get a list of all scopes currently in the system
+
+**Arguments**:
+
+- `_active_user`: The user trying to make this request
+- `db_session`: The database session used to retrieve all elements
+
+**Returns**:
+
+A list of all scopes
+
