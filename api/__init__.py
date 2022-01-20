@@ -3,6 +3,7 @@ import logging
 import time
 from typing import Optional, Union
 
+import sqlalchemy.exc
 from fastapi import Body, Depends, FastAPI as fastapi_application, Form, Security
 from fastapi import Request
 from fastapi.responses import UJSONResponse
@@ -514,7 +515,7 @@ async def users_delete(
     if isinstance(_user, tables.Account):
         db_session.delete(_user)
         db_session.commit()
-        return Response()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     # Since no user was found return a 404
     return Response(status_code=status.HTTP_404_NOT_FOUND)
 
@@ -535,3 +536,29 @@ async def users_get_all(
     :return:
     """
     return db_session.query(tables.Account).all()
+
+
+@auth_service_rest.put(
+    path='/users',
+    response_model=outgoing.UserAccount,
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED
+)
+async def users_add(
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session),
+        new_user: incoming.NewUserAccount = Body(...)
+):
+    """Add a user to the database
+
+    :param _active_user: The user making the request
+    :param db_session: The session used to insert the new user
+    :param new_user: The new user to be inserted
+    :return:
+    """
+    # Try inserting the new user
+    try:
+        _user = database.crud.add_user(new_user, db_session)
+        return _user
+    except sqlalchemy.exc.IntegrityError:
+        return Response(status_code=status.HTTP_409_CONFLICT)
