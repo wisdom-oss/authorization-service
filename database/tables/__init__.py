@@ -133,7 +133,7 @@ class Account(TableDeclarationBase):
     """Roles assigned to the account"""
 
 
-class RoleToScopes(TableDeclarationBase):
+class RoleToScope(TableDeclarationBase):
     """ORM for linking roles to the scopes they inherit"""
 
     __tablename__ = "role_scopes"

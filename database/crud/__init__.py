@@ -13,7 +13,7 @@ DBObject = typing.TypeVar(
     'DBObject', tables.Account, tables.Scope, tables.Role,
     tables.AccessToken, tables.RefreshToken, tables.AccountToRoles,
     tables.AccountToScope, tables.AccountToToken,
-    tables.AccountToRefreshTokens, tables.RoleToScopes,
+    tables.AccountToRefreshTokens, tables.RoleToScope,
     tables.TokenToScopes, tables.TokenToRefreshToken
 )
 """Generic type for all database inserts"""
@@ -266,4 +266,22 @@ def map_role_to_account(role_name: str, account_id: int, session: Session):
         )
         return add_to_database(_assignment_entry, session)
     # No role with that name exists
+    return None
+
+
+def map_scope_to_role(role_id: int, scope_value: str, session: Session):
+    """Map a scope to a role
+
+    :param session: Database session
+    :param role_id: Internal ID of the role
+    :param scope_value: Name of the scope which shall be mapped to the role
+    """
+    # Get the scope
+    _scope = get_scope_by_value(scope_value, session)
+    if _scope is not None:
+        _mapping = tables.RoleToScope(
+            role_id=role_id,
+            scope_id=_scope.scope_id
+        )
+        return add_to_database(_mapping, session)
     return None

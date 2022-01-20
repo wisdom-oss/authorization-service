@@ -125,6 +125,13 @@ class UserUpdate(BaseModel):
     )
     """Password of the new user"""
 
+    active: Optional[bool] = Field(
+        default=None,
+        title='Status of the user',
+        description='True for user enabled, False for user disabled'
+    )
+    """Status of the user (True == enabled)"""
+
     scopes: Optional[str] = Field(
         default=None,
         title='Scopes',
@@ -177,3 +184,42 @@ class ScopeUpdate(BaseModel):
         """Configuration of this model"""
         allow_population_by_field_name = True
         allow_population_by_alias = True
+
+
+class RoleUpdate(BaseModel):
+    """Data model for the Roles"""
+    role_name: Optional[str] = Field(
+        default=None,
+        title='Role Name',
+        description='Name of the Role',
+        alias='name'
+    )
+    """Name of the role"""
+
+    role_description: Optional[str] = Field(
+        default=None,
+        title='Role Description',
+        description='Text describing the role',
+        alias='description'
+    )
+    """Textual description of the role"""
+
+    role_scopes:Optional[str] = Field(
+        default=None,
+        title='Scopes',
+        description='Scopes assigned to the role. These role are also granted explicitly to the '
+                    'user',
+        alias='scopes'
+    )
+    """Scopes assigned to the role"""
+
+    class Config:
+        """Configuration for this data model"""
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the field aliases to read and assign properties"""

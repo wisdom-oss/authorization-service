@@ -707,3 +707,41 @@ async def roles_get_information(
     if _role is None:
         raise ObjectNotFoundException
     return _role
+
+
+@auth_service_rest.patch(
+    path='/roles/{role_id}',
+    response_model=outgoing.Role,
+    response_model_exclude_none=True
+)
+async def roles_update(
+        role_id: int,
+        update_info: incoming.RoleUpdate = Body(...),
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+) -> tables.Role:
+    """Update a role
+
+    :param role_id: The internal id of the role which shall be updated
+    :param update_info: New information about the role
+    :param _active_user: The user performing the update
+    :param db_session: The database session used to manipulate the role
+    :return: The manipulated role
+    """
+    # Try getting a role from the database
+    _role = database.crud.get_role(role_id, db_session)
+    if _role is None:
+        raise ObjectNotFoundException
+    if utilities.field_may_be_update_source(update_info.role_name):
+        _role.role_name = update_info.role_name
+    if utilities.field_may_be_update_source(update_info.role_description):
+        _role.role_description = update_info.role_description
+    if utilities.field_may_be_update_source(update_info.role_scopes):
+        for _scope_value in update_info.role_scopes.split():
+            database.crud.map_scope_to_role(_role.role_id, _scope_value, db_session)
+    # Commit all changes
+    db_session.commit()
+    # Refresh the role
+    db_session.refresh(_role)
+    # Return the role
+    return _role
