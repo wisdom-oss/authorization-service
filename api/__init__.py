@@ -647,3 +647,28 @@ async def scopes_update_scope(
     db_session.refresh(_scope)
     # Return the refreshed scope
     return _scope
+
+
+@auth_service_rest.delete(
+    path='/scopes/{scope_id}',
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def scopes_delete(
+        scope_id: int,
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Remove a scope from the system
+
+    Removing a scope from the system will also remove the scope from any token and user assigned
+    to it at the deletion time
+
+    :param scope_id: ID of the scope which shall be deleted
+    :param _active_user: The administrator making the call
+    :param db_session: The database session used for deleting the scope
+    """
+    _scope = database.crud.get_scope(scope_id, db_session)
+    if _scope is None:
+        raise ObjectNotFoundException
+    db_session.delete(_scope)
+    db_session.commit()
