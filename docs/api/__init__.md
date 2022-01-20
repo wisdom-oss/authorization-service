@@ -350,3 +350,24 @@ Update an already present scope
 
 The manipulated scope
 
+#### scopes\_delete
+
+```python
+@auth_service_rest.delete(
+    path='/scopes/{scope_id}',
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def scopes_delete(scope_id: int, _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+```
+
+Remove a scope from the system
+
+Removing a scope from the system will also remove the scope from any token and user assigned
+to it at the deletion time
+
+**Arguments**:
+
+- `scope_id`: ID of the scope which shall be deleted
+- `_active_user`: The administrator making the call
+- `db_session`: The database session used for deleting the scope
+
