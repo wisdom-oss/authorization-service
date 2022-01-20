@@ -54,6 +54,24 @@ Furthermore, the optional data will be passed in the `WWW-Authenticate` header.
 
 `UJSONResponse`: A JSON response explaining the reason behind the error
 
+#### handle\_object\_not\_found\_exception
+
+```python
+@auth_service_rest.exception_handler(ObjectNotFoundException)
+async def handle_object_not_found_exception(_request: Request, _exc: ObjectNotFoundException) -> UJSONResponse
+```
+
+Handle the ObjectNotFound exception
+
+**Arguments**:
+
+- `_request` (`Request`): The request in which the exception occurred in
+- `_exc` (`ObjectNotFoundException`): The ObjectNotFound Exception
+
+**Returns**:
+
+`UJSONResponse`: A JSON response explaining the reason behind the error
+
 #### oauth\_login
 
 ```python
@@ -284,4 +302,51 @@ Add a user to the database
 - `_active_user`: The user making the request
 - `db_session`: The session used to insert the new user
 - `new_user`: The new user to be inserted
+
+#### scopes\_get\_scope\_information
+
+```python
+@auth_service_rest.get(
+    path='/scopes/{scope_id}',
+    response_model=outgoing.Scope,
+    response_model_exclude_none=True
+)
+async def scopes_get_scope_information(scope_id: int, _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> Union[Response, Scope]
+```
+
+Get information about a scope by its internal id
+
+**Arguments**:
+
+- `scope_id`: The internal id of the scope
+- `_active_user`: The administrator making this request
+- `db_session`: Database session used to retrieve the scope data
+
+**Returns**:
+
+The requested scope if it was found
+
+#### scopes\_update\_scope
+
+```python
+@auth_service_rest.patch(
+    path='/scopes/{scope_id}',
+    response_model=outgoing.Scope,
+    response_model_exclude_none=True
+)
+async def scopes_update_scope(scope_id: int, update_info: incoming.ScopeUpdate = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Scope
+```
+
+Update an already present scope
+
+**Arguments**:
+
+- `update_info`: The update information for the scope
+- `scope_id`: The id of the scope which shall be edited
+- `_active_user`: The administrator making the request
+- `db_session`: The session used to manipulate the database entry
+
+**Returns**:
+
+The manipulated scope
 

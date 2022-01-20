@@ -610,3 +610,40 @@ async def scopes_get_scope_information(
     if _scope is None:
         raise ObjectNotFoundException
     return _scope
+
+
+@auth_service_rest.patch(
+    path='/scopes/{scope_id}',
+    response_model=outgoing.Scope,
+    response_model_exclude_none=True
+)
+async def scopes_update_scope(
+        scope_id: int,
+        update_info: incoming.ScopeUpdate = Body(...),
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+) -> tables.Scope:
+    """Update an already present scope
+
+    :param update_info: The update information for the scope
+    :param scope_id: The id of the scope which shall be edited
+    :param _active_user: The administrator making the request
+    :param db_session: The session used to manipulate the database entry
+    :return: The manipulated scope
+    """
+    _scope = database.crud.get_scope(scope_id, db_session)
+    # Check if the scope is existent
+    if _scope is None:
+        raise ObjectNotFoundException
+    # Start editing the scope
+    if update_info.scope_name is not None and update_info.scope_name.strip() != "":
+        _scope.scope_name = update_info.scope_name
+    if update_info.scope_description is not None and update_info.scope_description.strip() != "":
+        _scope.scope_description = update_info.scope_description
+    if update_info.scope_value is not None and update_info.scope_value.strip() != "":
+        _scope.scope_value = update_info.scope_value
+    # Commit the changes and refresh the scope
+    db_session.commit()
+    db_session.refresh(_scope)
+    # Return the refreshed scope
+    return _scope

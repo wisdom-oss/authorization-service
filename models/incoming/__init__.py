@@ -143,3 +143,37 @@ class UserUpdate(BaseModel):
         """Configuration of this model"""
         allow_population_by_field_name = True
         allow_population_by_alias = True
+
+
+class ScopeUpdate(BaseModel):
+    # pylint: disable=R0801
+    """OAuth2 Scope"""
+    scope_name: Optional[str] = Field(
+        default=None,
+        title='Name',
+        description='The name of the scope given by the creator',
+        alias='name'
+    )
+    """Name of the scope"""
+
+    scope_description: Optional[str] = Field(
+        default=None,
+        title='Description',
+        description='Textual description of the scope. This may contain hint as to what this '
+                    'scope may be used for',
+        alias='description'
+    )
+    """Textual description of the scope"""
+
+    scope_value: Optional[str] = Field(
+        default=None,
+        title='Value',
+        description='The value represents the scope in a OAuth2 scope string',
+        alias='value'
+    )
+    """OAuth2 scope string value identifying the scope"""
+
+    class Config:
+        """Configuration of this model"""
+        allow_population_by_field_name = True
+        allow_population_by_alias = True

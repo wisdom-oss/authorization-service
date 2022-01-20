@@ -135,3 +135,36 @@ class Config()
 Configuration of this model
 
 
+## ScopeUpdate Objects
+
+```python
+class ScopeUpdate(BaseModel)
+```
+
+OAuth2 Scope
+
+
+#### scope\_name
+
+Name of the scope
+
+
+#### scope\_description
+
+Textual description of the scope
+
+
+#### scope\_value
+
+OAuth2 scope string value identifying the scope
+
+
+## Config Objects
+
+```python
+class Config()
+```
+
+Configuration of this model
+
+
