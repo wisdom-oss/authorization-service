@@ -116,6 +116,11 @@ Username of the user
 Password of the new user
 
 
+#### active
+
+Status of the user (True == enabled)
+
+
 #### scopes
 
 Scopes of the new users
@@ -166,5 +171,53 @@ class Config()
 ```
 
 Configuration of this model
+
+
+## RoleUpdate Objects
+
+```python
+class RoleUpdate(BaseModel)
+```
+
+Data model for the Roles
+
+
+#### role\_name
+
+Name of the role
+
+
+#### role\_description
+
+Textual description of the role
+
+
+#### role\_scopes
+
+Scopes assigned to the role
+
+
+## Config Objects
+
+```python
+class Config()
+```
+
+Configuration for this data model
+
+
+#### orm\_mode
+
+Allow the reading of properties via a orm model
+
+
+#### allow\_population\_by\_field\_name
+
+Allow pydantic to use the field names to read the properties
+
+
+#### allow\_population\_by\_alias
+
+Allow pydantic to use the field aliases to read and assign properties
 
 

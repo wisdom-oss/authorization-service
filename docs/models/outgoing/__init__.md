@@ -73,6 +73,25 @@ Textual description of the role
 Scopes assigned to the role
 
 
+## Config Objects
+
+```python
+class Config()
+```
+
+Configuration for this data model
+
+
+#### orm\_mode
+
+Allow the reading of properties via a orm model
+
+
+#### allow\_population\_by\_field\_name
+
+Allow pydantic to use the field names to read the properties
+
+
 ## UserAccount Objects
 
 ```python

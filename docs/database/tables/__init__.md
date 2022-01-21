@@ -216,10 +216,10 @@ Scopes assigned to the account
 Roles assigned to the account
 
 
-## RoleToScopes Objects
+## RoleToScope Objects
 
 ```python
-class RoleToScopes(TableDeclarationBase)
+class RoleToScope(TableDeclarationBase)
 ```
 
 ORM for linking roles to the scopes they inherit

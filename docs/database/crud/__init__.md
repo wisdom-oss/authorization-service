@@ -219,6 +219,23 @@ Delete an access token from the database
 - `token_id`: 
 - `session`: 
 
+#### get\_role
+
+```python
+def get_role(role_id: int, session: Session) -> tables.Role
+```
+
+Get a role by its id
+
+**Arguments**:
+
+- `role_id`: The internal role id
+- `session`: The database session used to retrieve the role
+
+**Returns**:
+
+The role if it was found, else None
+
 #### map\_scope\_to\_account
 
 ```python
@@ -254,4 +271,32 @@ Map a role to an account
 **Returns**:
 
 The association object if the insert was successful, else None
+
+#### map\_scope\_to\_role
+
+```python
+def map_scope_to_role(role_id: int, scope_value: str, session: Session)
+```
+
+Map a scope to a role
+
+**Arguments**:
+
+- `session`: Database session
+- `role_id`: Internal ID of the role
+- `scope_value`: Name of the scope which shall be mapped to the role
+
+#### clear\_mapping\_entries
+
+```python
+def clear_mapping_entries(table: typing.Type[tables.RoleToScope], main_key: int, db_session: Session)
+```
+
+Clear all mapping entries with the role id
+
+**Arguments**:
+
+- `table`: The mapping table which shall be cleared for the
+- `main_key`: 
+- `db_session`: 
 

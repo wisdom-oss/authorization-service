@@ -51,3 +51,23 @@ Get a list of scope values from the account
 
 A list of scope strings
 
+#### field\_may\_be\_update\_source
+
+```python
+def field_may_be_update_source(new_value: Optional[str]) -> bool
+```
+
+Check if the field may be used for an update
+
+The check is done by testing if the str is actually None and stripping the string does not
+result in an empty string. This shall not be used for passwords, since those values may not
+be stripped of any whitespaces
+
+**Arguments**:
+
+- `new_value`: The value the field shall have after the update
+
+**Returns**:
+
+True if the field may be used, False if it may not be used
+

@@ -231,7 +231,8 @@ async def users_update_user_information(user_id: int, _active_user: tables.Accou
 Update a users account information
 
 Since this is an admin endpoint no additional verification is necessary to change passwords.
-Use with caution
+Use with caution. Calling this method will result in a logout of the affected user (even
+though no information has changed)
 
 **Arguments**:
 
@@ -392,4 +393,51 @@ Get a list of all scopes currently in the system
 **Returns**:
 
 A list of all scopes
+
+#### roles\_get\_information
+
+```python
+@auth_service_rest.get(
+    path='/roles/{role_id}',
+    response_model=outgoing.Role,
+    response_model_exclude_none=True
+)
+async def roles_get_information(role_id: int, _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Role
+```
+
+Retrieve information about a specific role
+
+**Arguments**:
+
+- `role_id`: The role which shall be returned
+- `_active_user`: The user making the request
+- `db_session`: The database session used to retrieve the role
+
+**Returns**:
+
+The Role which was queried
+
+#### roles\_update
+
+```python
+@auth_service_rest.patch(
+    path='/roles/{role_id}',
+    response_model=outgoing.Role,
+    response_model_exclude_none=True
+)
+async def roles_update(role_id: int, update_info: incoming.RoleUpdate = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Role
+```
+
+Update a role
+
+**Arguments**:
+
+- `role_id`: The internal id of the role which shall be updated
+- `update_info`: New information about the role
+- `_active_user`: The user performing the update
+- `db_session`: The database session used to manipulate the role
+
+**Returns**:
+
+The manipulated role
 
