@@ -1,10 +1,9 @@
+# pylint: disable=too-few-public-methods, duplicate-code
 """Module containing the pydantic data models for incoming requests"""
 from typing import List, Optional, Set
 
 from pydantic import BaseModel, Field, SecretStr
 from passlib import pwd
-
-# pylint: disable=too-few-public-methods
 
 
 class NewUserAccount(BaseModel):
@@ -223,3 +222,44 @@ class RoleUpdate(BaseModel):
 
         allow_population_by_alias = True
         """Allow pydantic to use the field aliases to read and assign properties"""
+
+
+class Role(BaseModel):
+    """Data model for the Role"""
+
+    role_name: str = Field(
+        default=...,
+        title='Role Name',
+        description='Name of the Role',
+        alias='name'
+    )
+    """Name of the role"""
+
+    role_description: str = Field(
+        default='',
+        title='Role Description',
+        description='Text describing the role',
+        alias='description'
+    )
+    """Textual description of the role"""
+
+    role_scopes: Optional[str] = Field(
+        default=None,
+        title='Scopes',
+        description='Scopes assigned to the role. These role are also granted explicitly to the '
+                    'user',
+        alias='scopes'
+    )
+    """Scopes assigned to the role"""
+
+    class Config:
+        """Configuration for this pydantic model"""
+
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""

@@ -1,9 +1,8 @@
+# pylint: disable=too-few-public-methods, duplicate-code
 """Datamodels for outgoing data"""
 from typing import List, Optional, Set
 
 from pydantic import BaseModel, Field
-
-# pylint: disable=too-few-public-methods
 from models import incoming
 
 
@@ -66,12 +65,16 @@ class Role(BaseModel):
     """Scopes assigned to the role"""
 
     class Config:
-        """Configuration for this data model"""
+        """Configuration for this pydantic model"""
+
         orm_mode = True
         """Allow the reading of properties via a orm model"""
 
         allow_population_by_field_name = True
         """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""
 
 
 class UserAccount(BaseModel):
@@ -133,12 +136,16 @@ class UserAccount(BaseModel):
     """Roles assigned to the user"""
 
     class Config:
-        """Configuration for this data model"""
+        """Configuration for this pydantic model"""
+
         orm_mode = True
         """Allow the reading of properties via a orm model"""
 
         allow_population_by_field_name = True
         """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""
 
 
 class TokenSet(BaseModel):

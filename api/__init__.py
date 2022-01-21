@@ -807,3 +807,42 @@ async def roles_delete(
         raise ObjectNotFoundException
     db_session.delete(_role)
     db_session.commit()
+
+
+@auth_service_rest.get(
+    path='/roles',
+    response_model=list[outgoing.Role],
+    response_model_exclude_none=True
+)
+async def roles_get_all(
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Get all roles present in the system
+
+    :param _active_user:  The user making the request
+    :param db_session: The database session used to get all roles
+    :return:
+    """
+    return database.crud.get_all(tables.Role, db_session)
+
+
+@auth_service_rest.put(
+    path='/roles',
+    response_model=outgoing.Role,
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED
+)
+async def roles_add(
+        new_role: incoming.Role = Body(...),
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Add a new Role to the System
+
+    :param new_role: The new role which shall be inserted
+    :param _active_user: The user making the request
+    :param db_session: The database session used to insert the role
+    :return:
+    """
+    return database.crud.add_role(new_role, db_session)
