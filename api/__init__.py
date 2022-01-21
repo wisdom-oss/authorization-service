@@ -413,13 +413,14 @@ async def users_get_own_account_info(
 @auth_service_rest.patch(
     path='/users/me',
     response_model=outgoing.UserAccount,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=False
 )
 async def user_update_own_account_password(
         _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"]),
         db_session: Session = Depends(database.session),
-        old_password: SecretStr = Body(..., embed=True),
-        new_password: SecretStr = Body(..., embed=True)
+        old_password: SecretStr = Body(..., embed=True, alias="oldPassword"),
+        new_password: SecretStr = Body(..., embed=True, alias="newPassword")
 ) -> outgoing.UserAccount:
     """Allow the current user to update the password assigned to the account
 
@@ -442,8 +443,22 @@ async def user_update_own_account_password(
     db_session.commit()
     # Now refresh the user account
     db_session.refresh(_active_user)
+    # Remove all access tokens from the database for this user
+    _assignments = (db_session
+                    .query(tables.AccountToToken)
+                    .filter(tables.AccountToToken.account_id == _active_user.account_id))
+    for assignment in _assignments:
+        database.crud.delete_access_token(assignment.token_id, db_session)
+    # Remove all refresh tokens from the database for this user
+    _assignments = (db_session
+                    .query(tables.AccountToRefreshTokens)
+                    .filter(tables.AccountToRefreshTokens.account_id == _active_user.account_id))
+    for assignment in _assignments:
+        database.crud.delete_refresh_token(assignment.refresh_token_id, db_session)
+    # Commit those changes
+    db_session.commit()
     # Return the user
-    return outgoing.UserAccount.from_orm(_active_user)
+    return _active_user
 
 
 @auth_service_rest.get(
