@@ -160,7 +160,8 @@ async def handle_integrity_error(
 @auth_service_rest.post(
     path='/oauth/token',
     response_model=outgoing.TokenSet,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=False
 )
 async def oauth_login(
         form: dependencies.OAuth2AuthorizationRequestForm = Depends(),
@@ -260,6 +261,12 @@ async def oauth_login(
         db_session.delete(_refresh_token)
         db_session.commit()
         return utilities.generate_token_set(_refresh_token.user[0], db_session, _allowed_scopes)
+    else:
+        raise AuthorizationException(
+            short_error='invalid_request',
+            error_description='There was no grant_type set',
+            http_status_code=status.HTTP_400_BAD_REQUEST
+        )
 
 
 @auth_service_rest.post(
