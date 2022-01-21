@@ -593,7 +593,8 @@ async def users_delete(
 @auth_service_rest.get(
     path='/users',
     response_model=list[outgoing.UserAccount],
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def users_get_all(
         _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
