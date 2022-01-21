@@ -113,6 +113,7 @@ async def handle_authorization_exception(
         }
     )
 
+
 @auth_service_rest.exception_handler(ObjectNotFoundException)
 async def handle_object_not_found_exception(
         _request: Request,
@@ -132,6 +133,26 @@ async def handle_object_not_found_exception(
             "error": "The requested object was not found. Please check your request"
         },
         status_code=status.HTTP_404_NOT_FOUND
+    )
+
+
+@auth_service_rest.exception_handler(sqlalchemy.exc.IntegrityError)
+async def handle_integrity_error(
+        _request: Request,
+        _exc: sqlalchemy.exc.IntegrityError
+):
+    """Handle a sqlalchemy Integrity Error
+
+    :param _request: The request in which the exception occurred
+    :param _exc: The exception which was thrown
+    :return:
+    """
+    return UJSONResponse(
+        content={
+            "error": "DUPLICATE_ENTRY",
+            "error_description": "The resource you tried to create already exists"
+        },
+        status_code=status.HTTP_409_CONFLICT
     )
 
 
