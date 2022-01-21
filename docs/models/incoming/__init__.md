@@ -221,3 +221,51 @@ Allow pydantic to use the field names to read the properties
 Allow pydantic to use the field aliases to read and assign properties
 
 
+## Role Objects
+
+```python
+class Role(BaseModel)
+```
+
+Data model for the Role
+
+
+#### role\_name
+
+Name of the role
+
+
+#### role\_description
+
+Textual description of the role
+
+
+#### role\_scopes
+
+Scopes assigned to the role
+
+
+## Config Objects
+
+```python
+class Config()
+```
+
+Configuration for this pydantic model
+
+
+#### orm\_mode
+
+Allow the reading of properties via a orm model
+
+
+#### allow\_population\_by\_field\_name
+
+Allow pydantic to use the field names to read the properties
+
+
+#### allow\_population\_by\_alias
+
+Allow pydantic to use the aliases to read properties
+
+

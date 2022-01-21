@@ -72,13 +72,28 @@ Handle the ObjectNotFound exception
 
 `UJSONResponse`: A JSON response explaining the reason behind the error
 
+#### handle\_integrity\_error
+
+```python
+@auth_service_rest.exception_handler(sqlalchemy.exc.IntegrityError)
+async def handle_integrity_error(_request: Request, _exc: sqlalchemy.exc.IntegrityError)
+```
+
+Handle a sqlalchemy Integrity Error
+
+**Arguments**:
+
+- `_request`: The request in which the exception occurred
+- `_exc`: The exception which was thrown
+
 #### oauth\_login
 
 ```python
 @auth_service_rest.post(
     path='/oauth/token',
     response_model=outgoing.TokenSet,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=False
 )
 async def oauth_login(form: dependencies.OAuth2AuthorizationRequestForm = Depends(), db_session: Session = Depends(database.session)) -> outgoing.TokenSet
 ```
@@ -105,7 +120,8 @@ during the users authorization
 @auth_service_rest.post(
     path='/oauth/check_token',
     response_model=outgoing.TokenIntrospection,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=False
 )
 async def oauth_token_introspection(_active_user: tables.Account = Security(dependencies.get_current_user), db_session: Session = Depends(database.session), token: str = Form(...), scope: Optional[str] = Form(None)) -> outgoing.TokenIntrospection
 ```
@@ -153,7 +169,8 @@ was not found.
 @auth_service_rest.get(
     path='/users/me',
     response_model=outgoing.UserAccount,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=False
 )
 async def users_get_own_account_info(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"])) -> outgoing.UserAccount
 ```
@@ -174,9 +191,10 @@ The account information
 @auth_service_rest.patch(
     path='/users/me',
     response_model=outgoing.UserAccount,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=False
 )
-async def user_update_own_account_password(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"]), db_session: Session = Depends(database.session), old_password: SecretStr = Body(..., embed=True), new_password: SecretStr = Body(..., embed=True)) -> outgoing.UserAccount
+async def user_update_own_account_password(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"]), db_session: Session = Depends(database.session), old_password: SecretStr = Body(..., embed=True, alias="oldPassword"), new_password: SecretStr = Body(..., embed=True, alias="newPassword")) -> outgoing.UserAccount
 ```
 
 Allow the current user to update the password assigned to the account
@@ -272,7 +290,8 @@ A `200 OK` response if the user was deleted. If the user was not found 404
 @auth_service_rest.get(
     path='/users',
     response_model=list[outgoing.UserAccount],
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def users_get_all(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
 ```
@@ -291,6 +310,7 @@ Get a list of all user accounts
     path='/users',
     response_model=outgoing.UserAccount,
     response_model_exclude_none=True,
+    response_model_by_alias=False,
     status_code=status.HTTP_201_CREATED
 )
 async def users_add(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session), new_user: incoming.NewUserAccount = Body(...))
@@ -310,7 +330,8 @@ Add a user to the database
 @auth_service_rest.get(
     path='/scopes/{scope_id}',
     response_model=outgoing.Scope,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def scopes_get_scope_information(scope_id: int, _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> Union[Response, Scope]
 ```
@@ -333,7 +354,8 @@ The requested scope if it was found
 @auth_service_rest.patch(
     path='/scopes/{scope_id}',
     response_model=outgoing.Scope,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def scopes_update_scope(scope_id: int, update_info: incoming.ScopeUpdate = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Scope
 ```
@@ -378,7 +400,8 @@ to it at the deletion time
 @auth_service_rest.get(
     path='/scopes',
     response_model=list[outgoing.Scope],
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def scopes_get_all(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> list[tables.Scope]
 ```
@@ -394,13 +417,39 @@ Get a list of all scopes currently in the system
 
 A list of all scopes
 
+#### scopes\_add
+
+```python
+@auth_service_rest.put(
+    path='/scopes',
+    response_model=outgoing.Scope,
+    response_model_exclude_none=True,
+    response_model_by_alias=True,
+    status_code=status.HTTP_201_CREATED
+)
+async def scopes_add(new_scope: incoming.Scope = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+```
+
+Create a new Role in the database
+
+**Arguments**:
+
+- `new_scope`: The new scope which shall be created
+- `_active_user`: The user making the request
+- `db_session`: The session used to insert the new scope in the database
+
+**Returns**:
+
+The inserted scope
+
 #### roles\_get\_information
 
 ```python
 @auth_service_rest.get(
     path='/roles/{role_id}',
     response_model=outgoing.Role,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def roles_get_information(role_id: int, _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Role
 ```
@@ -423,7 +472,8 @@ The Role which was queried
 @auth_service_rest.patch(
     path='/roles/{role_id}',
     response_model=outgoing.Role,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def roles_update(role_id: int, update_info: incoming.RoleUpdate = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Role
 ```
@@ -458,4 +508,75 @@ Delete a role from the server
 - `role_id`: The internal id of the role which shall be deleted
 - `_active_user`: The user making the deletion request
 - `db_session`: The database session used to delete the role
+
+#### roles\_get\_all
+
+```python
+@auth_service_rest.get(
+    path='/roles',
+    response_model=list[outgoing.Role],
+    response_model_exclude_none=True,
+    response_model_by_alias=True
+)
+async def roles_get_all(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+```
+
+Get all roles present in the system
+
+**Arguments**:
+
+- `_active_user`: The user making the request
+- `db_session`: The database session used to get all roles
+
+#### roles\_add
+
+```python
+@auth_service_rest.put(
+    path='/roles',
+    response_model=outgoing.Role,
+    response_model_exclude_none=True,
+    response_model_by_alias=True,
+    status_code=status.HTTP_201_CREATED
+)
+async def roles_add(new_role: incoming.Role = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+```
+
+Add a new Role to the System
+
+**Arguments**:
+
+- `new_role`: The new role which shall be inserted
+- `_active_user`: The user making the request
+- `db_session`: The database session used to insert the role
+
+#### status\_route
+
+```python
+@auth_service_rest.get(
+    path='/',
+)
+async def status_route(_request: Request)
+```
+
+This route will always return a 204 as response code
+
+**Arguments**:
+
+- `_request`: A request object needed to be specified
+
+**Returns**:
+
+A HTTP 204 Response indicating that the service is alive
+
+#### options\_openapi
+
+```python
+@auth_service_rest.options(
+    path='/',
+)
+async def options_openapi()
+```
+
+Get the openapi file
+
 

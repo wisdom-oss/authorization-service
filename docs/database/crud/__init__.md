@@ -28,17 +28,22 @@ Insert a new object into the database
 
 The inserted object
 
-#### get\_users
+#### get\_all
 
 ```python
-def get_users(session: Session) -> typing.List[tables.Account]
+def get_all(table: typing.Type[DBObject], session: Session) -> list[DBObject]
 ```
 
-Get all users in the database
+Get all present entries of a table
 
 **Arguments**:
 
-- `session`: Database session
+- `table`: The table which shall be returned
+- `session`: The session used to get the table entries
+
+**Returns**:
+
+A list of entries
 
 #### get\_user
 
@@ -124,6 +129,23 @@ Get a scope from the database by its scope value
 **Returns**:
 
 None if the scope does not exist, else the orm representation of the scope
+
+#### add\_scope
+
+```python
+def add_scope(new_scope: models.incoming.Scope, session: Session) -> tables.Scope
+```
+
+Add a new Scope to the system
+
+**Arguments**:
+
+- `new_scope`: The new scope for the environment
+- `session`: The database session used to insert it
+
+**Returns**:
+
+The inserted scope
 
 #### get\_access\_token
 
@@ -235,6 +257,23 @@ Get a role by its id
 **Returns**:
 
 The role if it was found, else None
+
+#### add\_role
+
+```python
+def add_role(new_role: models.incoming.Role, session: Session) -> tables.Role
+```
+
+Add a new role to the system
+
+**Arguments**:
+
+- `new_role`: The role which shall be inserted
+- `session`: The session used to insert the role
+
+**Returns**:
+
+The inserted role
 
 #### map\_scope\_to\_account
 

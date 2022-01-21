@@ -79,7 +79,7 @@ Scopes assigned to the role
 class Config()
 ```
 
-Configuration for this data model
+Configuration for this pydantic model
 
 
 #### orm\_mode
@@ -90,6 +90,11 @@ Allow the reading of properties via a orm model
 #### allow\_population\_by\_field\_name
 
 Allow pydantic to use the field names to read the properties
+
+
+#### allow\_population\_by\_alias
+
+Allow pydantic to use the aliases to read properties
 
 
 ## UserAccount Objects
@@ -142,7 +147,7 @@ Roles assigned to the user
 class Config()
 ```
 
-Configuration for this data model
+Configuration for this pydantic model
 
 
 #### orm\_mode
@@ -153,6 +158,11 @@ Allow the reading of properties via a orm model
 #### allow\_population\_by\_field\_name
 
 Allow pydantic to use the field names to read the properties
+
+
+#### allow\_population\_by\_alias
+
+Allow pydantic to use the aliases to read properties
 
 
 ## TokenSet Objects
