@@ -613,6 +613,7 @@ async def users_get_all(
     path='/users',
     response_model=outgoing.UserAccount,
     response_model_exclude_none=True,
+    response_model_by_alias=False,
     status_code=status.HTTP_201_CREATED
 )
 async def users_add(

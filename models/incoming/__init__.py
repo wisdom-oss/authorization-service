@@ -12,14 +12,16 @@ class NewUserAccount(BaseModel):
         default=...,
         title='First Name',
         description='The first name(s) of the newly created user',
-        min_length=1
+        min_length=1,
+        alias='firstName'
     )
     """First name(s) of the new user"""
 
     last_name: str = Field(
         default=...,
         title='Last name',
-        description='The last name(s) of the newly created user'
+        description='The last name(s) of the newly created user',
+        alias='lastName'
     )
     """Last name(s) of the new user"""
 
@@ -37,7 +39,7 @@ class NewUserAccount(BaseModel):
     )
     """Password of the new user"""
 
-    scopes: str = Field(
+    scopes: Optional[str] = Field(
         default='me',
         title='Scopes',
         description='The scopes this user may use'
