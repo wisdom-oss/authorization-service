@@ -148,4 +148,9 @@ def field_may_be_update_source(new_value: Optional[str]) -> bool:
     :param new_value: The value the field shall have after the update
     :return: True if the field may be used, False if it may not be used
     """
-    return new_value is not None and new_value.strip() != ""
+    if new_value is None:
+        return False
+    elif new_value.strip() == "":
+        return False
+    else:
+        return True
