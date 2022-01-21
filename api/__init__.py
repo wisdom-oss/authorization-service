@@ -12,7 +12,7 @@ from py_eureka_client.eureka_client import EurekaClient
 from pydantic import SecretStr
 from sqlalchemy.orm import Session
 from starlette import status
-from starlette.responses import Response
+from starlette.responses import FileResponse, Response
 
 import database
 from database import Scope, tables
@@ -890,3 +890,26 @@ async def roles_add(
     :return:
     """
     return database.crud.add_role(new_role, db_session)
+
+
+@auth_service_rest.get(
+    path='/',
+)
+async def status_route(_request: Request):
+    """This route will always return a 204 as response code
+
+    :param _request: A request object needed to be specified
+    :return: A HTTP 204 Response indicating that the service is alive
+    """
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@auth_service_rest.options(
+    path='/',
+)
+async def options_openapi():
+    """Get the openapi file"""
+    return FileResponse(
+        path='./openapi.yaml',
+        media_type='text/x-yaml'
+    )
