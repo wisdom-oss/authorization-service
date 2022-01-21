@@ -396,7 +396,8 @@ async def oauth_revoke_token(
 @auth_service_rest.get(
     path='/users/me',
     response_model=outgoing.UserAccount,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=False
 )
 async def users_get_own_account_info(
         _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["me"])
