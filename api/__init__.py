@@ -273,7 +273,8 @@ async def oauth_login(
 @auth_service_rest.post(
     path='/oauth/check_token',
     response_model=outgoing.TokenIntrospection,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=False
 )
 async def oauth_token_introspection(
         _active_user: tables.Account = Security(dependencies.get_current_user),
@@ -318,6 +319,13 @@ async def oauth_token_introspection(
     _token_scopes: list[str] = []
     for _token_scope in _token_data.scopes:
         _token_scopes.append(_token_scope.scope_value)
+    # Check if the token has the same user assigned as the currently active user
+    if _token_data.user[0] != _active_user:
+        raise AuthorizationException(
+            short_error="no_privileges",
+            http_status_code=status.HTTP_403_FORBIDDEN,
+            optional_data="scope=admin"
+        )
     # Now check if the scope string was set and has any content
     if scope is not None and scope.strip() != "":
         # Now iterate though the scopes in the scope string anc check if the scopes are in the
