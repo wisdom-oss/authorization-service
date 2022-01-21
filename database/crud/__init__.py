@@ -10,7 +10,8 @@ from models.incoming import NewUserAccount
 from .. import tables
 
 DBObject = typing.TypeVar(
-    'DBObject', tables.Account, tables.Scope, tables.Role,
+    'DBObject',
+    tables.Account, tables.Scope, tables.Role,
     tables.AccessToken, tables.RefreshToken, tables.AccountToRoles,
     tables.AccountToScope, tables.AccountToToken,
     tables.AccountToRefreshTokens, tables.RoleToScope,
@@ -214,6 +215,7 @@ def get_role(role_id: int, session: Session) -> tables.Role:
     """
     return session.query(tables.Role).filter(tables.Role.role_id == role_id).first()
 
+
 # ==== Mapping-Table operations ====
 def map_scope_to_account(
         scope_value: str,
@@ -285,3 +287,18 @@ def map_scope_to_role(role_id: int, scope_value: str, session: Session):
         )
         return add_to_database(_mapping, session)
     return None
+
+
+def clear_mapping_entries(
+        table: typing.Type[tables.RoleToScope],
+        main_key: int,
+        db_session: Session
+):
+    """Clear all mapping entries with the role id
+
+    :param table: The mapping table which shall be cleared for the
+    :param main_key:
+    :param db_session:
+    :return:
+    """
+    db_session.query(table).filter(table.role_id == main_key).delete()

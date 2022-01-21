@@ -738,6 +738,8 @@ async def roles_update(
         _role.role_description = update_info.role_description
     if utilities.field_may_be_update_source(update_info.role_scopes):
         for _scope_value in update_info.role_scopes.split():
+            # Remove all old mappings
+            database.crud.clear_mapping_entries(tables.RoleToScope, role_id, db_session)
             database.crud.map_scope_to_role(_role.role_id, _scope_value, db_session)
     # Commit all changes
     db_session.commit()
