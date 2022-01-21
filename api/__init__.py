@@ -379,7 +379,7 @@ async def oauth_revoke_token(
     # Check any of the tokens were found
     if not any([isinstance(_access_token, tables.AccessToken), isinstance(
             _refresh_token, tables.RefreshToken)]):
-        return Response(status_code=status.HTTP_200_OK)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     # Check if the token owner is also the requester
     if _access_token is not None and _access_token.user[0].account_id == _active_user.account_id:
         # Since it is the same person delete
@@ -389,7 +389,7 @@ async def oauth_revoke_token(
         # Since it is the same person delete
         db_session.delete(_refresh_token)
         db_session.commit()
-    return Response(status_code=status.HTTP_200_OK)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # == User operation Routes ==
