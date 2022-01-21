@@ -157,6 +157,7 @@ async def handle_integrity_error(
 
 
 # == OAuth2 Routes ==
+# pylint: disable=too-many-branches
 @auth_service_rest.post(
     path='/oauth/token',
     response_model=outgoing.TokenSet,
