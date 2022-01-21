@@ -441,3 +441,21 @@ Update a role
 
 The manipulated role
 
+#### roles\_delete
+
+```python
+@auth_service_rest.delete(
+    path='/roles/{role_id}',
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def roles_delete(role_id: int, _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+```
+
+Delete a role from the server
+
+**Arguments**:
+
+- `role_id`: The internal id of the role which shall be deleted
+- `_active_user`: The user making the deletion request
+- `db_session`: The database session used to delete the role
+
