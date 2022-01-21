@@ -102,7 +102,7 @@ def __check_required_tables(__db_session: DatabaseSession = next(session())):
                          'scope since users (who are not admins) may not read their own account '
                          'information, thus creating unexpected behaviour')
     # Check if a user exists in the database
-    user_list = crud.get_users(__db_session)
+    user_list = crud.get_all(Account, __db_session)
     if len(user_list) == 0:
         __logger.error('There is no user in the database. Therefore this service and all '
                        'dependent services are unable to authorize users. This will break the '

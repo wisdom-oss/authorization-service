@@ -573,7 +573,7 @@ async def users_get_all(
     :param db_session:
     :return:
     """
-    return db_session.query(tables.Account).all()
+    return database.crud.get_all(tables.Account, db_session)
 
 
 @auth_service_rest.put(
@@ -595,11 +595,7 @@ async def users_add(
     :return:
     """
     # Try inserting the new user
-    try:
-        _user = database.crud.add_user(new_user, db_session)
-        return _user
-    except sqlalchemy.exc.IntegrityError:
-        return Response(status_code=status.HTTP_409_CONFLICT)
+    return database.crud.add_user(new_user, db_session)
 
 
 # == Scope Operation Routes ==

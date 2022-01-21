@@ -38,16 +38,17 @@ def add_to_database(obj: DBObject, session: Session) -> DBObject:
     return obj
 
 
-# ==== Account-Table operations ====
-def get_users(session: Session) -> typing.List[tables.Account]:
-    """Get all users in the database
+def get_all(table: typing.Type[DBObject], session: Session) -> list[DBObject]:
+    """Get all present entries of a table
 
-    :param session: Database session
-    :return:
+    :param table: The table which shall be returned
+    :param session: The session used to get the table entries
+    :return: A list of entries
     """
-    return session.query(tables.Account).all()
+    return session.query(table).all()
 
 
+# ==== Account-Table operations ====
 def get_user(user_id: int, session: Session) -> typing.Optional[tables.Account]:
     """Get an account by its internal id
 
@@ -125,6 +126,19 @@ def get_scope_by_value(scope_value: str, session: Session) -> typing.Optional[ta
     :return: None if the scope does not exist, else the orm representation of the scope
     """
     return session.query(tables.Scope).filter(tables.Scope.scope_value == scope_value).first()
+
+
+def add_scope(new_scope: models.incoming.Scope, session: Session) -> tables.Scope:
+    """Add a new Scope to the system
+
+    :param new_scope: The new scope for the environment
+    :param session: The database session used to insert it
+    :return: The inserted scope
+    """
+    scope = tables.Scope(
+        **new_scope.dict()
+    )
+    return add_to_database(scope, session)
 
 
 # ==== Access-Token table operations ====
@@ -214,6 +228,24 @@ def get_role(role_id: int, session: Session) -> tables.Role:
     :return: The role if it was found, else None
     """
     return session.query(tables.Role).filter(tables.Role.role_id == role_id).first()
+
+
+def add_role(new_role: models.incoming.Role, session: Session) -> tables.Role:
+    """Add a new role to the system
+
+    :param new_role: The role which shall be inserted
+    :param session: The session used to insert the role
+    :return: The inserted role
+    """
+    role = tables.Role(
+        role_name=new_role.role_name,
+        role_description=new_role.role_description
+    )
+    role = add_to_database(role, session)
+    if new_role.role_scopes is not None and new_role.role_scopes.strip() != "":
+        for scope in new_role.role_scopes.split():
+            map_scope_to_role(role.role_id, scope, session)
+    return role
 
 
 # ==== Mapping-Table operations ====
