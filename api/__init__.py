@@ -4,7 +4,7 @@ import time
 from typing import Optional, Union
 
 import sqlalchemy.exc
-from fastapi import Body, Depends, FastAPI as fastapi_application, Form, Security
+from fastapi import Body, Depends, FastAPI as RESTApplication, Form, Security
 from fastapi import Request
 from fastapi.responses import UJSONResponse
 from passlib.hash import pbkdf2_sha512 as pwd_hasher
@@ -20,7 +20,7 @@ from exceptions import AuthorizationException, ObjectNotFoundException
 from models import ServiceSettings, incoming, outgoing
 from . import dependencies, utilities
 
-auth_service_rest = fastapi_application()
+auth_service_rest = RESTApplication()
 """Main API application for this service"""
 
 # Create a logger for the API and its routes
