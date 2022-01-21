@@ -747,3 +747,25 @@ async def roles_update(
     db_session.refresh(_role)
     # Return the role
     return _role
+
+
+@auth_service_rest.delete(
+    path='/roles/{role_id}',
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def roles_delete(
+        role_id: int,
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Delete a role from the server
+
+    :param role_id: The internal id of the role which shall be deleted
+    :param _active_user: The user making the deletion request
+    :param db_session: The database session used to delete the role
+    """
+    _role = database.crud.get_role(role_id, db_session)
+    if _role is None:
+        raise ObjectNotFoundException
+    db_session.delete(_role)
+    db_session.commit()
