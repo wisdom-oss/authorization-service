@@ -55,7 +55,7 @@ class Role(BaseModel):
     )
     """Textual description of the role"""
 
-    role_scopes: Optional[Set[Scope]] = Field(
+    role_scopes: Optional[List[Scope]] = Field(
         default=None,
         title='Scopes',
         description='Scopes assigned to the role. These role are also granted explicitly to the '

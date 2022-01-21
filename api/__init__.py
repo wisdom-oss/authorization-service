@@ -636,7 +636,8 @@ async def users_add(
 @auth_service_rest.get(
     path='/scopes/{scope_id}',
     response_model=outgoing.Scope,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def scopes_get_scope_information(
         scope_id: int,
@@ -659,7 +660,8 @@ async def scopes_get_scope_information(
 @auth_service_rest.patch(
     path='/scopes/{scope_id}',
     response_model=outgoing.Scope,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def scopes_update_scope(
         scope_id: int,
@@ -716,12 +718,14 @@ async def scopes_delete(
         raise ObjectNotFoundException
     db_session.delete(_scope)
     db_session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @auth_service_rest.get(
     path='/scopes',
     response_model=list[outgoing.Scope],
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def scopes_get_all(
         _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
@@ -740,6 +744,7 @@ async def scopes_get_all(
     path='/scopes',
     response_model=outgoing.Scope,
     response_model_exclude_none=True,
+    response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED
 )
 async def scopes_add(
@@ -761,7 +766,8 @@ async def scopes_add(
 @auth_service_rest.get(
     path='/roles/{role_id}',
     response_model=outgoing.Role,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def roles_get_information(
         role_id: int,
@@ -784,7 +790,8 @@ async def roles_get_information(
 @auth_service_rest.patch(
     path='/roles/{role_id}',
     response_model=outgoing.Role,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def roles_update(
         role_id: int,
@@ -841,12 +848,14 @@ async def roles_delete(
         raise ObjectNotFoundException
     db_session.delete(_role)
     db_session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @auth_service_rest.get(
     path='/roles',
     response_model=list[outgoing.Role],
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    response_model_by_alias=True
 )
 async def roles_get_all(
         _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
@@ -865,6 +874,7 @@ async def roles_get_all(
     path='/roles',
     response_model=outgoing.Role,
     response_model_exclude_none=True,
+    response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED
 )
 async def roles_add(
