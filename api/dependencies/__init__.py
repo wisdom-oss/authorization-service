@@ -78,7 +78,7 @@ async def get_current_user(
         if needed_scope not in _token_scopes:
             raise AuthorizationException(
                 short_error='insufficient_scope',
-                http_status_code=status.HTTP_401_UNAUTHORIZED,
+                http_status_code=status.HTTP_403_FORBIDDEN,
                 optional_data=f"scope={security_scopes.scope_str}"
             )
     # Now return the database orm user
