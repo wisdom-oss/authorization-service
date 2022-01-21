@@ -2,6 +2,8 @@
 the settings"""
 from pydantic import AnyHttpUrl, BaseSettings, Field, stricturl, AmqpDsn
 
+# pylint: disable=too-few-public-methods
+
 
 class ServiceSettings(BaseSettings):
     """

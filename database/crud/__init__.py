@@ -9,17 +9,18 @@ from models.incoming import NewUserAccount
 
 from .. import tables
 
-X = typing.TypeVar(
-    'X', tables.Account, tables.Scope, tables.Role,
+DBObject = typing.TypeVar(
+    'DBObject',
+    tables.Account, tables.Scope, tables.Role,
     tables.AccessToken, tables.RefreshToken, tables.AccountToRoles,
     tables.AccountToScope, tables.AccountToToken,
-    tables.AccountToRefreshTokens, tables.RoleToScopes,
+    tables.AccountToRefreshTokens, tables.RoleToScope,
     tables.TokenToScopes, tables.TokenToRefreshToken
 )
 """Generic type for all database inserts"""
 
 
-def add_to_database(obj: X, session: Session) -> X:
+def add_to_database(obj: DBObject, session: Session) -> DBObject:
     """Insert a new object into the database
 
     :param obj: Object which shall be inserted
@@ -37,16 +38,17 @@ def add_to_database(obj: X, session: Session) -> X:
     return obj
 
 
-# ==== Account-Table operations ====
-def get_users(session: Session) -> typing.List[tables.Account]:
-    """Get all users in the database
+def get_all(table: typing.Type[DBObject], session: Session) -> list[DBObject]:
+    """Get all present entries of a table
 
-    :param session: Database session
-    :return:
+    :param table: The table which shall be returned
+    :param session: The session used to get the table entries
+    :return: A list of entries
     """
-    return session.query(tables.Account).all()
+    return session.query(table).all()
 
 
+# ==== Account-Table operations ====
 def get_user(user_id: int, session: Session) -> typing.Optional[tables.Account]:
     """Get an account by its internal id
 
@@ -126,6 +128,126 @@ def get_scope_by_value(scope_value: str, session: Session) -> typing.Optional[ta
     return session.query(tables.Scope).filter(tables.Scope.scope_value == scope_value).first()
 
 
+def add_scope(new_scope: models.incoming.Scope, session: Session) -> tables.Scope:
+    """Add a new Scope to the system
+
+    :param new_scope: The new scope for the environment
+    :param session: The database session used to insert it
+    :return: The inserted scope
+    """
+    scope = tables.Scope(
+        **new_scope.dict()
+    )
+    return add_to_database(scope, session)
+
+
+# ==== Access-Token table operations ====
+def get_access_token(token_id: int, session: Session) -> typing.Optional[tables.AccessToken]:
+    """Get an access token from the database by its internal id
+
+    :param token_id: Internal Access Token ID
+    :param session: Database session
+    :return: If the token exists the token, else None
+    """
+    return session.query(tables.AccessToken).filter(tables.AccessToken.token_id == token_id).first()
+
+
+def get_access_token_by_token(
+        token_value: str,
+        session: Session
+) -> typing.Optional[tables.AccessToken]:
+    """Get an access token from the database by its actual value
+
+    :param token_value: The actual value of the access token
+    :param session: Database session
+    :return: If the token exists the token, else None
+    """
+    return session.query(tables.AccessToken).filter(tables.AccessToken.token == token_value).first()
+
+
+def delete_access_token(token_id: int, session: Session):
+    """Delete an access token from the database
+
+    :param token_id:
+    :param session:
+    :return:
+    """
+    session.query(tables.AccessToken).filter(tables.AccessToken.token_id == token_id).delete()
+
+
+# ==== Refresh-Token table operations ====
+def get_refresh_token(token_id: int, session: Session) -> typing.Optional[tables.RefreshToken]:
+    """Get an access token from the database by its internal id
+
+    :param token_id: Internal Access Token ID
+    :param session: Database session
+    :return: If the token exists the token, else None
+    """
+    return (session
+            .query(tables.RefreshToken)
+            .filter(tables.RefreshToken.refresh_token_id == token_id)
+            .first()
+            )
+
+
+def get_refresh_token_by_token(
+        token_value: str,
+        session: Session
+) -> typing.Optional[tables.RefreshToken]:
+    """Get an access token from the database by its actual value
+
+    :param token_value: The actual value of the access token
+    :param session: Database session
+    :return: If the token exists the token, else None
+    """
+    return (session
+            .query(tables.RefreshToken)
+            .filter(tables.RefreshToken.refresh_token == token_value)
+            .first()
+            )
+
+
+def delete_refresh_token(token_id: int, session: Session):
+    """Delete an access token from the database
+
+    :param token_id:
+    :param session:
+    :return:
+    """
+    (session
+     .query(tables.RefreshToken)
+     .filter(tables.RefreshToken.refresh_token_id == token_id).delete())
+
+
+# ==== Role-Table operations ====
+def get_role(role_id: int, session: Session) -> tables.Role:
+    """Get a role by its id
+
+    :param role_id: The internal role id
+    :param session: The database session used to retrieve the role
+    :return: The role if it was found, else None
+    """
+    return session.query(tables.Role).filter(tables.Role.role_id == role_id).first()
+
+
+def add_role(new_role: models.incoming.Role, session: Session) -> tables.Role:
+    """Add a new role to the system
+
+    :param new_role: The role which shall be inserted
+    :param session: The session used to insert the role
+    :return: The inserted role
+    """
+    role = tables.Role(
+        role_name=new_role.role_name,
+        role_description=new_role.role_description
+    )
+    role = add_to_database(role, session)
+    if new_role.role_scopes is not None and new_role.role_scopes.strip() != "":
+        for scope in new_role.role_scopes.split():
+            map_scope_to_role(role.role_id, scope, session)
+    return role
+
+
 # ==== Mapping-Table operations ====
 def map_scope_to_account(
         scope_value: str,
@@ -151,9 +273,8 @@ def map_scope_to_account(
             scope_id=scope.scope_id
         )
         return add_to_database(_assignment_entry, session)
-    else:
-        # Return None to show that no scope with this name exists
-        return None
+    # Return None to show that no scope with this name exists
+    return None
 
 
 def map_role_to_account(role_name: str, account_id: int, session: Session):
@@ -166,7 +287,8 @@ def map_role_to_account(role_name: str, account_id: int, session: Session):
     """
     # Get the role object for retrieving the internal role id
     role: tables.Role = (
-        session.query(tables.Role)
+            session
+            .query(tables.Role)
             .filter(tables.Role.role_name == role_name)
             .first()
     )
@@ -177,6 +299,38 @@ def map_role_to_account(role_name: str, account_id: int, session: Session):
             role_id=role.role_id
         )
         return add_to_database(_assignment_entry, session)
-    else:
-        # No role with that name exists
-        return None
+    # No role with that name exists
+    return None
+
+
+def map_scope_to_role(role_id: int, scope_value: str, session: Session):
+    """Map a scope to a role
+
+    :param session: Database session
+    :param role_id: Internal ID of the role
+    :param scope_value: Name of the scope which shall be mapped to the role
+    """
+    # Get the scope
+    _scope = get_scope_by_value(scope_value, session)
+    if _scope is not None:
+        _mapping = tables.RoleToScope(
+            role_id=role_id,
+            scope_id=_scope.scope_id
+        )
+        return add_to_database(_mapping, session)
+    return None
+
+
+def clear_mapping_entries(
+        table: typing.Type[tables.RoleToScope],
+        main_key: int,
+        db_session: Session
+):
+    """Clear all mapping entries with the role id
+
+    :param table: The mapping table which shall be cleared for the
+    :param main_key:
+    :param db_session:
+    :return:
+    """
+    db_session.query(table).filter(table.role_id == main_key).delete()

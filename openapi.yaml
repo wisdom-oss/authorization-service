@@ -1,0 +1,999 @@
+openapi: 3.1.0
+info:
+  title: WISdoM 2.0 Authorization Service
+  description: |
+    Reworked authorization service which now is based on Python and [FastAPI by
+    Tiangolo](https://fastapi.tiangolo.com/).
+    Furthermore this service will also be able to validate access
+    tokens via AMQP messages. This feature will not be documented here since
+    there is no real possibility for this. You can read more about this feature
+    in the README.md
+  version: 2.0.0
+
+tags:
+  - name: Miscellaneous
+  - name: OAuth2.0 Operations
+  - name: User Operations
+  - name: Scope Operations
+  - name: Role Operations
+  - name: Create Items
+  - name: Delete Items
+  - name: Update Items
+  - name: Get Items
+
+components:
+  securitySchemes:
+    wisdom_auth:
+      type: "oauth2"
+      scheme: "Bearer"
+      bearerFormat: "In header as UUID"
+      flows:
+        password:
+          tokenUrl: "/oauth/token"
+          scopes:
+            admin: Administrative access to the authorization service
+            me: Access to the own account info and change the account password
+  schemas:
+    AuthorizationBody:
+      type: object
+      required:
+        - grant_type
+      discriminator:
+        propertyName: grant_type
+      properties:
+        grant_type:
+          type: string
+          title: OAuth2.0 Grant Type
+          description: The grant type used to receive a new token set
+        scope:
+          type: string
+    CredentialAuthorization:
+      description: Receive a new token set via an account credential
+      allOf:
+        - $ref: '#/components/schemas/AuthorizationBody'
+        - type: object
+          properties:
+            username:
+              type: string
+              description: The username part of the account credentials
+              minLength: 1
+            password:
+              type: string
+              format: password
+              writeOnly: true
+              description: The password part of the account credentials
+          required:
+            - username
+            - password
+      example:
+        grant_type: password
+        username: example-user
+        password: example-password
+    RefreshTokenAuthorization:
+      description: Body to receive a new token set via a refresh token
+      allOf:
+        - $ref: '#/components/schemas/AuthorizationBody'
+        - type: object
+          properties:
+            refresh_token:
+              type: string
+              description: The refresh token issued beforehand
+              pattern: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+          required:
+            - refresh_token
+      example:
+        grant_type: refresh_token
+        refresh_token: 00000000-0000-0000-0000-000000000000
+    TokenIntrospection:
+      type: object
+      discriminator:
+        propertyName: token_type
+      properties:
+        active:
+          type: boolean
+          description: State of the presented token (True for an active token)
+        token_type:
+          type: string
+          enum:
+            - access_token
+            - refresh_token
+        username:
+          type: string
+          description: The username of the account associated to the token
+        scope:
+          type: string
+          description: The scopes this token is valid for
+        iat:
+          type: integer
+          description: The UNIX timestamp indicating the creation time and date of this token
+      required:
+        - active
+    RefreshTokenIntrospection:
+      description: "Result of a introspection done on a refresh token"
+      allOf:
+        - $ref: '#/components/schemas/TokenIntrospection'
+    AccessTokenIntrospection:
+      description: "Result of a introspection done on a access token"
+      allOf:
+        - $ref: '#/components/schemas/TokenIntrospection'
+        - type: object
+          properties:
+            exp:
+              type: integer
+              description: The UNIX timestamp indicating the exipry of a access toke
+    AccountInformation:
+      type: object
+      properties:
+        id:
+          type: integer
+          title: Internal Account ID
+          description: This id may be used to run other user related operations
+        firstName:
+          type: string
+          title: First name(s)
+          description: First name(s) of the person associated to the account
+        lastName:
+          type: string
+          title: Last name(s)
+          description: Last name(s) of the person associated to the account
+        username:
+          type: string
+          title: Username
+          description: Username for the login
+        active:
+          type: boolean
+          title: Account Status
+          description: The account is acive as long as this value is `true`
+        scopes:
+          type: array
+          items:
+            - $ref: '#/components/schemas/Scope'
+        role:
+          type: array
+          items:
+            - $ref: '#/components/schemas/Role'
+      required:
+        - id
+        - firstName
+        - lastName
+        - username
+        - active
+    AccountInformationUpdate:
+      type: object
+      properties:
+        firstName:
+          type: string
+          title: First name(s)
+          description: First name(s) of the person associated to the account
+          default: null
+        lastName:
+          type: string
+          title: Last name(s)
+          description: Last name(s) of the person associated to the account
+          default: null
+        username:
+          type: string
+          title: Username
+          description: Username for the login
+          default: null
+        active:
+          type: boolean
+          title: Account Status
+          description: The account is acive as long as this value is `true`
+          default: null
+        scopes:
+          type: string
+          description: The scopes the user may now use as OAuth2.0 scope string
+          default: null
+        role:
+          type: array
+          description: List of Role names which the user shall be associated with
+          default: null
+          items:
+            - type: string
+    NewUserAccount:
+      type: object
+      properties:
+        firstName:
+          type: string
+          title: First name(s)
+          description: First name(s) of the person associated to the account
+        lastName:
+          type: string
+          title: Last name(s)
+          description: Last name(s) of the person associated to the account
+        username:
+          type: string
+          title: Username
+          description: Username for the login
+        password:
+          type: string
+          title: Account Password
+          description: >
+            The initial account password for this user. This password should be changed by the user,
+            but there is no password change requirement currently implemented in this service
+        scopes:
+          type: string
+          description: The scopes the user may use as OAuth2.0 scope string
+          default: null
+        role:
+          type: array
+          description: List of Role names which the user shall be associated with
+          default: null
+          items:
+            - type: string
+      required:
+        - firstName
+        - lastName
+        - username
+        - password
+    Scope:
+      type: object
+      properties:
+        id:
+          type: integer
+          title: Internal Scope ID
+          description: >
+            This internal id may be used to reference this scope in path operations for 
+            manipulating scopes
+        name:
+          type: string
+          title: Scope Name
+          description: >
+            This scope name identifies the scope for users in the frontend
+        description:
+          type: string
+          title: Scope Description
+          description: >
+            This description shall be used to define the scope further than just the name or the
+            value
+        value:
+          type: string
+          title: Scope Value
+          description: >
+            This scope value is used to identify the scope in Authorization requests and other
+            locations where a scope string is used
+      required:
+        - id
+        - name
+        - value
+    NewScope:
+      type: object
+      properties:
+        name:
+          type: string
+          title: Scope Name
+          description: >
+            This scope name identifies the scope for users in the frontend
+        description:
+          type: string
+          title: Scope Description
+          description: >
+            This description shall be used to define the scope further than just the name or the
+            value
+        value:
+          type: string
+          title: Scope Value
+          description: >
+            This scope value is used to identify the scope in Authorization requests and other
+            locations where a scope string is used
+      required:
+        - name
+        - value
+    ScopeUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: Scope Name
+          description: >
+            This scope name identifies the scope for users in the frontend
+        description:
+          type: string
+          title: Scope Description
+          description: >
+            This description shall be used to define the scope further than just the name or the
+            value
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          title: Internal Role ID
+          description: >
+            This internal id may be used to reference this role in role manipulation operations
+        name:
+          type: string
+          title: Role Name
+          description: >
+            This role name is used to identify the roles in request bodies. They may contain 
+            whitespaces since the request bodies expect an array of role names
+        description:
+          type: string
+          title: Role Description
+          description: >
+            This description shall define what this role is used for
+        scopes:
+          type: array
+          title: Scopes
+          description: >
+            These scopes are inherited by the role. Users with this role are automatically assigned 
+            all scopes associated to this role
+          items:
+            - $ref: '#/components/schemas/Scope'
+    NewRole:
+      type: object
+      properties:
+        name:
+          type: string
+          title: Role Name
+          description: >
+            This role name is used to identify the roles in request bodies. They may contain 
+            whitespaces since the request bodies expect an array of role names
+        description:
+          type: string
+          title: Role Description
+          description: >
+            This description shall define what this role is used for
+        scopes:
+          type: string
+          title: Scopes
+          description: >
+            These scopes are inherited by the role. This field requires a OAuth2.0 scope string
+    RoleUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          title: Role Name
+          description: >
+            This role name is used to identify the roles in request bodies. They may contain 
+            whitespaces since the request bodies expect an array of role names
+        description:
+          type: string
+          title: Role Description
+          description: >
+            This description shall define what this role is used for
+        scopes:
+          type: string
+          title: Scopes
+          description: >
+            These scopes are inherited by the role. This field requires a OAuth2.0 scope string
+    ErrorResponseBody:
+      type: object
+      properties:
+        error:
+          type: string
+          description: The error code
+        error_description:
+          type: string
+          description: Further explanation on the error if the error code does not identify the error
+
+  responses:
+    ForbiddenResponse:
+      description: The current user has insufficient permissions to run this operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseBody'
+    NotFoundResponse:
+      description: The referenced object was not found via its id
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseBody'
+    DuplicateItemResponse:
+      description: The creation failed since a similar object is already in the database
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseBody'
+    ObjectDeletedResponse:
+      description: The object was deleted successfully
+    UserNotLoggedInResponse:
+      description: There is no valid authorization information present
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseBody'
+paths:
+  /:
+    get:
+      tags:
+        - Miscellaneous
+      summary: Check the availability of this service
+      responses:
+        204:
+          description: The service is available
+    options:
+      tags:
+        - Miscellaneous
+      summary: Get information about how to query the service
+      responses:
+        200:
+          description: This OpenAPI specification
+  /oauth/token:
+    post:
+      tags:
+        - OAuth2.0 Operations
+      summary: Generate a new token set
+      requestBody:
+        description: Login Form
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CredentialAuthorization'
+                - $ref: '#/components/schemas/RefreshTokenAuthorization'
+              discriminator:
+                propertyName: grant_type
+                mapping:
+                  password: '#/components/schemas/CredentialAuthorization'
+                  refresh_token: '#/components/schemas/RefreshTokenAuthorization'
+
+      responses:
+        200:
+          description: The user was authenticated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: The access token which shall be used as Bearer Token
+                    pattern: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+                  token_type:
+                    type: string
+                    description: Type of the access token
+                  expires_in:
+                    type: integer
+                    description: Time in seconds until the token expires
+                  refresh_token:
+                    type: string
+                    description: The refresh token which may be used to get another token set
+                    pattern: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+                  scope:
+                    type: string
+                    description: The scopes the tokens in the response are valid for
+                required:
+                  - access_token
+                  - token_type
+                  - expires_in
+                  - refresh_token
+                  - scope
+                example:
+                  access_token: 00000000-0000-0000-0000-000000000001
+                  token_type: bearer
+                  expires_in: 3600
+                  refresh_token: 00000000-0000-0000-0000-000000000000
+                  scope: admin me
+        400:
+          description: The token set could not be created due to an error in the request
+          headers:
+            WWW-Authenticate:
+              description: Authenticate Header specifying the authorization type
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseBody"
+  /oauth/check_token:
+    post:
+      tags:
+        - OAuth2.0 Operations
+      summary: Run an introspection on a token
+      security:
+        - wisdom_auth: []
+      requestBody:
+        description: The body containing the token which shall be checked
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  pattern: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+                  description: The token on which the introspection shall be executed
+                scope:
+                  type: string
+                  description: The scope against which the token shall be tested
+              required:
+                - token
+      responses:
+        200:
+          description: The token introspection was successful
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/AccessTokenIntrospection'
+                  - $ref: '#/components/schemas/RefreshTokenIntrospection'
+                discriminator:
+                  propertyName: token_type
+                  mapping:
+                    access_token: '#/components/schemas/AccessTokenIntrospection'
+                    refresh_token: '#/components/schemas/RefreshTokenIntrospection'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+  /oauth/revoke:
+    post:
+      tags:
+        - OAuth2.0 Operations
+      summary: Revoke a access or refresh token
+      description: >
+        With this endpoint you may revoke any access or refresh token as long as the 
+        token used to authorize has the scope "me"
+      security:
+        - wisdom_auth:
+          - me
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  pattern: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+                  description: The token on which shall be revoked
+              required:
+                - token
+      responses:
+        204:
+          description: The token was not found or it was revoked
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+  /users:
+    get:
+      tags:
+        - User Operations
+        - Get Items
+      summary: Get all user accounts currently in the database
+      description: >
+        This will return a array of account information
+      security:
+        - wisdom_auth:
+            - admin
+      responses:
+        200:
+          description: The user list is retrievable
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  - $ref: '#/components/schemas/AccountInformation'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+    put:
+      tags:
+        - User Operations
+        - Create Items
+      summary: Create a new user account
+      description: >
+        This will create a new user account. During the creation a user account may not use the same
+        username (login name). All other properties may be not unique
+      security:
+        - wisdom_auth:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUserAccount'
+      responses:
+        201:
+          description: The new user was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInformation'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        409:
+          description: An account with the same username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseBody'
+  /users/me:
+    get:
+      tags:
+        - User Operations
+        - Get Items
+      summary: Read information of the own user account
+      description: >
+        The current user is identified via the bearer token in the `Authorization` header. These 
+        information are only accessible if the token was created with the `me` scope.
+      security:
+        - wisdom_auth:
+            - me
+      responses:
+        200:
+          description: The user information is readable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInformation'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+    patch:
+      tags:
+        - User Operations
+        - Update Items
+      summary: Update the current accounts password
+      description: >
+        The current user is identified via the bearer token in the `Authorization` header. 
+        The password may only be changed if the token has the `me`scope
+      security:
+        - wisdom_auth:
+            - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                oldPassword:
+                  type: string
+                  format: password
+                  writeOnly: true
+                  title: Old Account Password
+                  description: >
+                    The old account password is needed to validate that the user really wanted to 
+                    change the password and the token was not stolen
+                newPassword:
+                  type: string
+                  format: "password"
+                  writeOnly: true
+                  title: New Account Password
+                  description: >
+                    The new account password
+      responses:
+        200:
+          description: The password was changed successfully and the user was logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInformation'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+  /users/{user_id}:
+    parameters:
+      - name: user_id
+        in: path
+        description: Internal User ID of the account which shall be accessed
+        required: true
+        schema:
+          type: integer
+        style: simple
+    get:
+      tags:
+        - User Operations
+        - Get Items
+      summary: Get the account information about the referenced account
+      description: >
+        The account information of other users is only accessible if the token used has the `admin` 
+        scope assigned to it
+      security:
+        - wisdom_auth:
+            - admin
+      responses:
+        200:
+          description: The user does exist and its info is readable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInformation'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags:
+        - User Operations
+        - Update Items
+      summary: Update another user account (for modifying the own account use `/users/me`)
+      description: >
+        Update any information of the specified user. When calling the endpoint all tokens 
+        associated to the specified user will be revoked, resulting in a logout of the user. To
+        exclude a field from being updated set is to null or do not send it in the body
+      security:
+        - wisdom_auth:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountInformationUpdate'
+      responses:
+        200:
+          description: The user was updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountInformation'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags:
+        - User Operations
+        - Delete Items
+      summary: Delete a user
+      security:
+        - wisdom_auth:
+            - admin
+      responses:
+        204:
+          $ref: '#/components/responses/ObjectDeletedResponse'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/NotFoundResponse'
+  /scopes:
+    get:
+      tags:
+        - Scope Operations
+        - Get Items
+      summary: Get all scopes currently in the system
+      description: >
+        This will create a array of scopes
+      security:
+        - wisdom_auth:
+            - admin
+      responses:
+        200:
+          description: The request was successful
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  - $ref: '#/components/schemas/Scope'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+    put:
+      tags:
+        - Scope Operations
+        - Create Items
+      summary: Add a new scope to the system
+      security:
+        - wisdom_auth:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewScope'
+      responses:
+        201:
+          description: The scope was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scope'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        409:
+          $ref: '#/components/responses/DuplicateItemResponse'
+  /scopes/{scope_id}:
+    parameters:
+      - name: scope_id
+        in: path
+        description: The internal id of a scope which shall be accessed
+        required: true
+        style: simple
+        schema:
+          type: integer
+
+    get:
+      tags:
+        - Scope Operations
+        - Get Items
+      summary: Get information of a single scope
+      security:
+        - wisdom_auth:
+            - admin
+      responses:
+        200:
+          description: The scope was read successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scope'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags:
+        - Scope Operations
+        - Update Items
+      summary: Update the information about a scope
+      security:
+        - wisdom_auth:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScopeUpdate'
+      responses:
+        200:
+          description: The scope was updated sucessfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scope'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags:
+        - Scope Operations
+        - Delete Items
+      summary: Delete the references scope
+      security:
+        - wisdom_auth:
+            - admin
+      responses:
+        204:
+          $ref: '#/components/responses/ObjectDeletedResponse'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/NotFoundResponse'
+  /roles:
+    get:
+      tags:
+        - Role Operations
+        - Get Items
+      summary: Get all roles currently present in the system
+      description: >
+        This will return a list of Roles
+      security:
+        - wisdom_auth:
+            - admin
+      responses:
+        200:
+          description: The roles are accessible for this user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  - $ref: '#/components/schemas/Role'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+    put:
+      tags:
+        - Role Operations
+        - Create Items
+      summary: Create a new role in the system
+      security:
+        - wisdom_auth:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewRole'
+      responses:
+        201:
+          description: The new role was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        409:
+          $ref: '#/components/responses/DuplicateItemResponse'
+  /roles/{role_id}:
+    parameters:
+      - name: role_id
+        in: path
+        description: The internal id of a role which shall be accessed
+        required: true
+        style: simple
+        schema:
+          type: integer
+
+    get:
+      tags:
+        - Role Operations
+        - Get Items
+      summary: Get information about the specified role
+      security:
+        - wisdom_auth:
+            - admin
+      responses:
+        200:
+          description: The role exsits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/NotFoundResponse'
+    patch:
+      tags:
+        - Role Operations
+        - Update Items
+      summary: Update informations of this scope
+      security:
+        - wisdom_auth:
+            - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleUpdate'
+      responses:
+        200:
+          description: The role was successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/NotFoundResponse'
+    delete:
+      tags:
+        - Role Operations
+        - Delete Items
+      summary: Delete the referenced role
+      security:
+        - wisdom_auth:
+            - admin
+      responses:
+        204:
+          $ref: '#/components/responses/ObjectDeletedResponse'
+        401:
+          $ref: '#/components/responses/UserNotLoggedInResponse'
+        403:
+          $ref: '#/components/responses/ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/NotFoundResponse'

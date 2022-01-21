@@ -1,10 +1,12 @@
+# pylint: disable=too-few-public-methods, duplicate-code
 """Datamodels for outgoing data"""
 from typing import List, Optional, Set
 
 from pydantic import BaseModel, Field
+from models import incoming
 
 
-class Scope(BaseModel):
+class Scope(incoming.Scope):
     """Data model for describing a scope which can be used in incoming/outgoing communication"""
     scope_id: int = Field(
         default=...,
@@ -14,35 +16,17 @@ class Scope(BaseModel):
     )
     """Internally used id of the scope"""
 
-    scope_name: str = Field(
-        default=...,
-        title='Name',
-        description='The name of the scope given by the creator',
-        alias='name'
-    )
-    """Name of the scope"""
-
-    scope_description: str = Field(
-        default='',
-        title='Description',
-        description='Textual description of the scope. This may contain hint as to what this '
-                    'scope may be used for',
-        alias='description'
-    )
-    """Textual description of the scope"""
-
-    scope_value: str = Field(
-        default=...,
-        title='Value',
-        description='The value represents the scope in a OAuth2 scope string',
-        alias='value'
-    )
-    """OAuth2 scope string value identifying the scope"""
-
     class Config:
-        """Configuration of this model"""
+        """Configuration for this pydantic model"""
+
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
         allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
         allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""
 
 
 class Role(BaseModel):
@@ -71,7 +55,7 @@ class Role(BaseModel):
     )
     """Textual description of the role"""
 
-    role_scopes: Optional[Set[Scope]] = Field(
+    role_scopes: Optional[List[Scope]] = Field(
         default=None,
         title='Scopes',
         description='Scopes assigned to the role. These role are also granted explicitly to the '
@@ -79,6 +63,18 @@ class Role(BaseModel):
         alias='scopes'
     )
     """Scopes assigned to the role"""
+
+    class Config:
+        """Configuration for this pydantic model"""
+
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""
 
 
 class UserAccount(BaseModel):
@@ -115,11 +111,11 @@ class UserAccount(BaseModel):
     )
     """Username for this account"""
 
-    active: bool = Field(
+    is_active: bool = Field(
         default=...,
         title='Account Status',
         description='Boolean value showing if the account is active (true) or disabled (false)',
-        alias='is_active'
+        alias='active'
     )
     """Account Status (True == active)"""
 
@@ -140,9 +136,121 @@ class UserAccount(BaseModel):
     """Roles assigned to the user"""
 
     class Config:
-        """Configuration for this data model"""
+        """Configuration for this pydantic model"""
+
         orm_mode = True
         """Allow the reading of properties via a orm model"""
 
         allow_population_by_field_name = True
         """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""
+
+
+class TokenSet(BaseModel):
+    """Data model for a token set after a successful authorization attempt"""
+
+    access_token: str = Field(
+        default=...,
+        alias='accessToken',
+        description='OAuth2 Bearer Token'
+    )
+    """OAuth2 Bearer Token"""
+
+    token_type: str = Field(
+        default="bearer",
+        alias='tokenType',
+        description='Type of the OAuth2 Token'
+    )
+    """Type of the OAuth2 Token"""
+
+    expires_in: Optional[int] = Field(
+        default=3600,
+        description="Time to live of the token after it has been issued"
+    )
+    """TTL (time-to-live) of the token after it has been issued (Standard TTL: 3600)"""
+
+    refresh_token: Optional[str] = Field(
+        default=None,
+        description='Refresh token which may be used to get a new access token'
+    )
+    """Refresh token which may be used to get a new access token"""
+
+    scope: Optional[str] = Field(
+        default="",
+        description='Scopes of this token'
+    )
+    """Scope string for this token (optional if the token has the same scopes as requested)"""
+
+    class Config:
+        """Configuration for this pydantic model"""
+
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""
+
+
+class TokenIntrospection(BaseModel):
+    """Pydantic data model for a token introspection response"""
+
+    active: bool = Field(
+        default=...,
+        alias='active',
+        title='Status of the presented token',
+        description='The value of this is "true" if the token may be used for authorizing on the '
+                    'server'
+    )
+    """Status of the token (true if is active and not revoked)"""
+
+    scopes: Optional[str] = Field(
+        default=None,
+        alias='scope',
+        title='OAuth2.0 Scopes',
+        description='Scopes this token was associated with'
+    )
+    """Scopes this token was associated with"""
+
+    username: Optional[str] = Field(
+        default=None,
+        alias='username',
+        description='Owner of the token'
+    )
+    """Username identifying the owner of the token"""
+
+    token_type: Optional[str] = Field(
+        default=None,
+        alias='token_type',
+        description='Type of the token (either access_token or refresh_token)'
+    )
+    """Type of the token (either access_token or refresh_token)"""
+
+    exp: Optional[int] = Field(
+        default=None,
+        alias='exp',
+        description='UNIX timestamp of the expiry time'
+    )
+    """UNIX timestamp of expire time and date"""
+
+    iat: Optional[int] = Field(
+        default=None,
+        alias='iat',
+        description='UNIX timestamp indicating the creation time of the token'
+    )
+
+    class Config:
+        """Configuration for this pydantic model"""
+
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""
