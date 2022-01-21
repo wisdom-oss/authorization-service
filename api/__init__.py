@@ -514,11 +514,11 @@ async def users_update_user_information(
     if _user is None:
         raise ObjectNotFoundException
     # Start manipulating the user
-    if utilities.field_may_be_update_source(update_info.first_name) != "":
+    if utilities.field_may_be_update_source(update_info.first_name):
         _user.first_name = update_info.first_name.strip()
-    if utilities.field_may_be_update_source(update_info.last_name) != "":
+    if utilities.field_may_be_update_source(update_info.last_name):
         _user.last_name = update_info.last_name.strip()
-    if utilities.field_may_be_update_source(update_info.username) != "":
+    if utilities.field_may_be_update_source(update_info.username):
         _user.username = update_info.username.strip()
     if update_info.password is not None and update_info.password.get_secret_value() != "":
         _user.password = pwd_hasher.hash(update_info.password.get_secret_value())
