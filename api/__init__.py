@@ -699,7 +699,28 @@ async def scopes_get_all(
     :param db_session: The database session used to retrieve all elements
     :return: A list of all scopes
     """
-    return db_session.query(tables.Scope).all()
+    return database.crud.get_all(tables.Scope, db_session)
+
+
+@auth_service_rest.put(
+    path='/scopes',
+    response_model=outgoing.Scope,
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED
+)
+async def scopes_add(
+        new_scope: incoming.Scope = Body(...),
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Create a new Role in the database
+
+    :param new_scope: The new scope which shall be created
+    :param _active_user: The user making the request
+    :param db_session: The session used to insert the new scope in the database
+    :return: The inserted scope
+    """
+    return database.crud.add_scope(new_scope, db_session)
 
 
 # == Role Operation Routes ==
