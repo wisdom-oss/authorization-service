@@ -2,47 +2,74 @@
   "items": [
     {
       "items": [
-        "api/__init__",
-        "api/dependencies",
-        "api/exceptions"
+        {
+          "items": [
+            "api/dependencies/__init__"
+          ],
+          "label": "api.dependencies",
+          "type": "category"
+        },
+        {
+          "items": [
+            "api/utilities/__init__"
+          ],
+          "label": "api.utilities",
+          "type": "category"
+        },
+        "api/__init__"
       ],
       "label": "api",
       "type": "category"
     },
     {
       "items": [
-        "data_models/__init__",
-        "data_models/settings"
+        {
+          "items": [
+            "database/crud/__init__"
+          ],
+          "label": "database.crud",
+          "type": "category"
+        },
+        {
+          "items": [
+            "database/tables/__init__"
+          ],
+          "label": "database.tables",
+          "type": "category"
+        },
+        "database/__init__"
       ],
-      "label": "data_models",
+      "label": "database",
+      "type": "category"
+    },
+    {
+      "items": [
+        "exceptions/__init__"
+      ],
+      "label": "exceptions",
       "type": "category"
     },
     {
       "items": [
         {
           "items": [
-            "db/crud/__init__",
-            "db/crud/role",
-            "db/crud/scope",
-            "db/crud/token",
-            "db/crud/user"
+            "models/incoming/__init__"
           ],
-          "label": "db.crud",
+          "label": "models.incoming",
           "type": "category"
         },
         {
           "items": [
-            "db/objects/__init__"
+            "models/outgoing/__init__"
           ],
-          "label": "db.objects",
+          "label": "models.outgoing",
           "type": "category"
         },
-        "db/__init__"
+        "models/__init__"
       ],
-      "label": "db",
+      "label": "models",
       "type": "category"
-    },
-    "service"
+    }
   ],
   "label": "Reference",
   "type": "category"

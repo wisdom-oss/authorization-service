@@ -1,5 +1,11 @@
 loaders:
   - type: python
+processors:
+  - type: filter
+    documented_only: true
+    exclude_private: false
+    exclude_special: false
+  - type: sphinx
 renderer:
   type: docusaurus
   docs_base_path: docs
