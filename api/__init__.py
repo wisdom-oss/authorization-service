@@ -341,7 +341,8 @@ async def oauth_token_introspection(
             active=True,
             scope=scope,
             username=_token_data.user[0].username,
-            token_type='access_token',
+            token_type='access_token' if isinstance(_token_data, tables.AccessToken) else
+                'refresh_token',
             exp=_token_data.expires,
             iat=_token_data.created if isinstance(_token_data, tables.AccessToken) else None
         )
@@ -349,7 +350,8 @@ async def oauth_token_introspection(
         active=True,
         scope=' '.join(_token_scopes),
         username=_token_data.user[0].username,
-        token_type='access_token',
+        token_type='access_token' if isinstance(_token_data, tables.AccessToken) else
+        'refresh_token',
         exp=_token_data.expires,
         iat=_token_data.created if isinstance(_token_data, tables.AccessToken) else None
     )

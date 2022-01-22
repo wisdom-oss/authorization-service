@@ -45,7 +45,7 @@ def _engine() -> Engine:
 def __generate_root_user(__db_session: DatabaseSession = next(session())):
     """Generate a new root user with the user id of 0 and the admin and me scope"""
     # Create the new user object
-    _root_user = models.incoming.NewUserAccount(
+    _root_user = models.http.incoming.NewUserAccount(
         first_name='System',
         last_name='Administrator',
         username='root',
