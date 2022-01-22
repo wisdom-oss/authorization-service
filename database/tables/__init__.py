@@ -90,7 +90,7 @@ class RefreshToken(TableDeclarationBase):
     refresh_token_id = Column(Integer, primary_key=True, autoincrement=True)
     """Internal id of the refresh token"""
 
-    refresh_token = Column(String(length=36), unique=True)
+    refresh_token = Column(String(length=128), unique=True)
     """Actual refresh token"""
 
     expires = Column(Integer, nullable=False)
