@@ -4,8 +4,8 @@ import typing
 from sqlalchemy.orm import Session
 from passlib.hash import pbkdf2_sha512 as pass_hash
 
-import models.outgoing
-from models.incoming import NewUserAccount
+import models.http.outgoing
+from models.http.incoming import NewUserAccount
 
 from .. import tables
 
