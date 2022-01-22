@@ -5,12 +5,11 @@ import sys
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
-import sqlalchemy.ext.declarative
 from sqlalchemy_utils import database_exists, create_database
 from passlib import pwd
 
 import models
-import models.incoming
+import models.http.incoming
 from . import crud
 from .tables import Scope, TableDeclarationBase, Account
 

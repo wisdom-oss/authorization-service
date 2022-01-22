@@ -6,7 +6,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 import database.tables
-import models.outgoing
+import models.http.outgoing
 
 ACCESS_TOKEN_TTL = 3600
 """TTL for a access token in seconds (1h)"""

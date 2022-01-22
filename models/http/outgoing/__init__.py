@@ -1,9 +1,9 @@
 # pylint: disable=too-few-public-methods, duplicate-code
 """Datamodels for outgoing data"""
-from typing import List, Optional, Set
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
-from models import incoming
+from models.http import incoming
 
 
 class Scope(incoming.Scope):

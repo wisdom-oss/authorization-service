@@ -17,7 +17,8 @@ from starlette.responses import FileResponse, Response
 import database
 from database import Scope, tables
 from exceptions import AuthorizationException, ObjectNotFoundException
-from models import ServiceSettings, incoming, outgoing
+from models import ServiceSettings
+from models.http import incoming, outgoing
 from . import dependencies, utilities
 
 auth_service_rest = RESTApplication()
