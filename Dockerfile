@@ -7,7 +7,7 @@ LABEL de.uol.wisdom-oss.service_name="auth-service"
 RUN addgroup --system auth-service && \
     adduser --home /opt/auth-service --system --gecos "" auth-service --ingroup auth-service
 # Copy the source code to the image
-COPY src /opt/auth-service
+COPY . /opt/auth-service
 # Copy the requirements file to the image
 COPY requirements.txt /opt/auth-service
 # Install the requirements
