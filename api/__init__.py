@@ -52,7 +52,7 @@ def api_startup():
     # Create a new service registry client
     __service_registry_client = EurekaClient(
         eureka_server=__settings.service_registry_url,
-        app_name='wisdom-oss_authorization-service',
+        app_name='authorization-service',
         instance_port=5000,
         should_register=True,
         should_discover=False,
