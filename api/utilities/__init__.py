@@ -89,7 +89,7 @@ def generate_token_set(
         # Use the scopes the user owns
         for scope in user.scopes:
             # Create a mapping entry
-            _token_scope_mapping = database.tables.TokenToScopes(
+            _token_scope_mapping = database.tables.RefreshTokenToScopes(
                 token_id=_token.token_id,
                 scope_id=scope.scope_id
             )
