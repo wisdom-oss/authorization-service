@@ -1,5 +1,7 @@
 """Package containing all outgoing response models"""
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from models import BaseModel, shared
 
 
 class BasicAMQPResponse(BaseModel):
@@ -17,19 +19,12 @@ class BasicAMQPResponse(BaseModel):
     )
     """Status of the message handling"""
 
-    class Config:
-        """Configuration for this Basic model"""
-
-        orm_mode = True
-        """Allow pydantic to read ORM classes into this model"""
-
-        allow_population_by_field_name = True
-        """Allow pydantic to populate field values by their actual python names and via the 
-        aliases"""
-
 
 class AMQPErrorResponse(BasicAMQPResponse):
     """A Response Model used for errors which occurred during the message handling"""
+
+    status = 'error'
+    """Since this is a error response the status will be error"""
 
     error: str = Field(
         default=...,
@@ -44,3 +39,14 @@ class AMQPErrorResponse(BasicAMQPResponse):
         title='Error Description'
     )
     """A more accurate description of the error"""
+
+
+class AMQPScopeResponse(shared.Scope, BasicAMQPResponse):
+    """Data model for describing a scope which can be used in incoming/outgoing communication"""
+    scope_id: int = Field(
+        default=...,
+        title='ID',
+        description='Internally used id of the scope',
+        alias='id'
+    )
+    """Internally used id of the scope"""

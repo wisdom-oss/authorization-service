@@ -1,8 +1,10 @@
 """Package for describing the incoming amqp messages"""
 from typing import Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
+import models.shared
+from models import BaseModel
 from models.enums import AMQPActions
 
 
@@ -31,21 +33,24 @@ class AMQPValidateTokenRequest(BaseModel):
     """The scopes which shall be tested for the token"""
 
 
-class AMQPRevokeTokenRequest(BaseModel):
-    """
-    A data model for validating a token request
-    """
+class AMQPCreateScopeRequest(models.shared.Scope):
+    """A data model describing the amqp payload which needs to be sent"""
 
-    action: Literal[AMQPActions.REVOKE_TOKEN]
+    action = Literal[AMQPActions.ADD_SCOPE]
     """The action which shall be executed"""
 
-    token: str = Field(
+
+class AMQPUpdateScopeRequest(models.shared.ScopeUpdate):
+
+    action = Literal[AMQPActions.EDIT_SCOPE]
+    """The action which shall be executed"""
+
+    scope_id = Field(
         default=...,
-        alias='token',
-        title='OAuth2.0 Token',
-        description='The token which shall be validated in the system'
+        alias='scopeID',
+        title='Internal Scope ID',
+        description='The ID of the scope that shall be modified'
     )
-    """The token which shall be revoked"""
 
 
 class IncomingAMQPRequest(BaseModel):
@@ -53,6 +58,6 @@ class IncomingAMQPRequest(BaseModel):
     A data model for incoming AMQP messages
     """
 
-    payload: Union[AMQPValidateTokenRequest, AMQPRevokeTokenRequest] = Field(
+    payload: Union[AMQPValidateTokenRequest, AMQPCreateScopeRequest] = Field(
         default=..., discriminator='action'
     )

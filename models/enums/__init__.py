@@ -8,9 +8,6 @@ class AMQPActions(str, Enum):
     VALIDATE_TOKEN = 'validate_token'
     """Request a token validation"""
 
-    REVOKE_TOKEN = 'revoke_token'
-    """Revoke a issued token"""
-
     ADD_SCOPE = 'add_scope'
     """Add a scope to the system"""
 
