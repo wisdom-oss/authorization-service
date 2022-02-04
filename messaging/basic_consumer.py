@@ -431,7 +431,6 @@ class BasicAMQPConsumer:
                     exchange='',
                     routing_key=msg_prop.reply_to,
                     body=AMQPErrorResponse(
-                        status='error',
                         error='MISSING_AUTHORIZATION',
                         error_description='The required authorization information was not found'
                     ).json().encode('utf-8'),
@@ -459,7 +458,6 @@ class BasicAMQPConsumer:
                     exchange='',
                     routing_key=msg_prop.reply_to,
                     body=AMQPErrorResponse(
-                        status='error',
                         error='INVALID_GRANT',
                         error_description='The authorization credentials are not valid. Please '
                                           'check your credentials'
@@ -473,5 +471,22 @@ class BasicAMQPConsumer:
                 )
             return
         # Since the message was valid run the message executor which will receive the message
-        # body only
+        # body only. The executor will only be called if a correlation id and the reply-to field
+        # were set
+        if None in [msg_prop.correlation_id, msg_prop.reply_to]:
+            self.__logger.warning(
+                'Missing information detected. The message will not be passed to the executor and '
+                'the sender can not be notified of this error'
+            )
+            return
         _exc_result = executor.execute({"payload": ujson.loads(content)})
+        self.__logger.info('Executed action successfully. Now returning the message')
+        # Return the message to the message broker
+        channel.basic_publish(
+            exchange='',
+            routing_key=msg_prop.reply_to,
+            body=_exc_result.json(by_alias=True, exclude_none=True).encode('utf-8'),
+            properties=_msg_properties
+        )
+
+
