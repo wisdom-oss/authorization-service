@@ -133,7 +133,7 @@ None if the scope does not exist, else the orm representation of the scope
 #### add\_scope
 
 ```python
-def add_scope(new_scope: models.incoming.Scope, session: Session) -> tables.Scope
+def add_scope(new_scope: models.shared.Scope, session: Session) -> tables.Scope
 ```
 
 Add a new Scope to the system
@@ -261,7 +261,7 @@ The role if it was found, else None
 #### add\_role
 
 ```python
-def add_role(new_role: models.incoming.Role, session: Session) -> tables.Role
+def add_role(new_role: models.http.incoming.Role, session: Session) -> tables.Role
 ```
 
 Add a new role to the system
@@ -338,4 +338,17 @@ Clear all mapping entries with the role id
 - `table`: The mapping table which shall be cleared for the
 - `main_key`: 
 - `db_session`: 
+
+#### get\_client\_credential\_by\_client\_id
+
+```python
+def get_client_credential_by_client_id(client_id: str, session: Session) -> tables.ClientCredential
+```
+
+Get a client credential from the database
+
+**Arguments**:
+
+- `client_id`: The client id which shall be queried for
+- `session`: The database session used to access the database
 

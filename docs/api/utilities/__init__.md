@@ -19,7 +19,7 @@ TTL for a refresh token in seconds (7d)
 #### generate\_token\_set
 
 ```python
-def generate_token_set(user: database.tables.Account, db_session: Session, scopes: Optional[List[str]] = None) -> models.outgoing.TokenSet
+def generate_token_set(user: database.tables.Account, db_session: Session, scopes: Optional[List[str]] = None) -> models.http.outgoing.TokenSet
 ```
 
 Generate a new token set and insert it into the database
