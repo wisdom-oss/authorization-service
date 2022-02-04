@@ -1,33 +1,84 @@
-# Authorization and User Service
+# Authorization Service
 Maintainer: [Jan Eike Suchard](https://github.com/j-suchard)  
-Version: 0.2  
-Further documentation: [click here](./api/init)
+Version: 0.9
 
-## System Requirements
-### for Development
-- Python 3.9
-- packages vom requirements.txt
+<hr/>
 
-This service offers the possibility to authorize users for frontend end backend
-applications the release package will be known as 1.0 and will have the following
-features:
+## Supported Features
 
-- [X] Authorization of Users via HTTP
-- [X] Issue Refresh Token and use them to receive a new access_token
-- [X] Check tokens via HTTP
-- [ ] Check tokens via AMQP
-- [X] Run user related commands
-- [X] Run Scope related commands via HTTP
-- [X] Run Role related commands via HTTP
+- Access token issuing via HTTP
+- User management via HTTP
+- Role management via HTTP
+- Scope management via HTTP
 
-## Important Information
-### 1. Access Tokens
-The TTL (time-to-live) of an access token is 1 hour
-### 2. Refresh Tokens
-For every authorization request a refresh_token will be issued. The TTL of 
-a refresh token is 7 days
-### 3. Scopes
-The scopes which were assigned to an access token will also be assigned to a 
-refresh token. Therefore, requesting a new access token with a refresh token
-will only grant the same scopes as specified in the original request. Extending
-or changing scopes is not supported and will result in an authorization error 
+## Planned Features
+
+- Creation of client credentials for internal modules
+- Scope management via AMQP
+- Authentication via client credentials via HTTP
+
+<hr/>
+
+## Usage Information
+
+The general information about how to make requests may be found in the OpenAPI Specification of this
+service
+
+### Tokens
+
+The following lifetimes are in reference to the creation time on the server. The creation time may 
+be requested via running a token introspection.
+
+#### Access Tokens
+
+Access Tokens issued by this service are valid for `3600` seconds (1 hour).  
+The access tokens are UUIDs (Type 4)
+
+#### Refresh Tokens
+
+Refresh Tokens issued by this service are valid for `604800` seconds (7 days)  
+The refresh tokens are SHA512 hashed UUIDs (Type 4).  
+When using a refresh token for getting a new access token the refresh token will be deleted and 
+therefore invalidated
+
+<hr/>
+
+## Common Error Codes
+
+### HTTP
+
+#### DUPLICATE_ENTRY
+
+During the creation of a new object a unique or primary key was violated. Please check the current
+entries in the databases and try again. If the error persists, create an issue please.
+
+#### invalid_grant
+
+The credentials which were used during the authorization process are not valid. Please try again. 
+If the error persists, contact your administrator
+
+#### invalid_scope
+
+The scopes which were requested during the authorization process are either not assigned to the user
+tyring to authorize or are not in the system. Please check your tables, if needed and contact your 
+administrator if the error persists
+
+#### invalid_request
+
+Some of your data was invalid and therefore the request could not be handled. 
+Please check your request.
+
+#### no_privileges
+
+The currently authorized user is not allowed to access the resource due to 
+missing scope assignments
+
+### AMQP
+#### INVALID_DATA_STRUCTURE
+
+The data structure sent to the service did not match the specification for this 
+request type
+
+#### NOT_IMPLEMENTED
+
+The action requested is currently not fully implemented and therefore not callable

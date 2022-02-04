@@ -9,10 +9,13 @@ import pika
 import pika.channel
 import pika.exchange_type
 import pika.frame
+import ujson
 
 from pydantic import AmqpDsn
 
+import security
 from messaging import executor
+from models.amqp.outgoing import AMQPErrorResponse
 
 
 class BasicAMQPConsumer:
@@ -390,54 +393,85 @@ class BasicAMQPConsumer:
             self,
             channel: pika.channel.Channel,
             delivery: pika.spec.Basic.Deliver,
-            properties: pika.spec.BasicProperties,
+            msg_prop: pika.spec.BasicProperties,
             content: bytes
     ):
         """Callback for new messages read from the server
 
         :param channel: Channel used to get the message
         :param delivery: Basic information about the message delivery
-        :param properties: Message properties
+        :param msg_prop: Message properties
         :param content: Message content
         """
         self.__logger.debug(
             'Received new message (message id: #%s) via exchange "%s"',
             delivery.delivery_tag, delivery.exchange
         )
-        # Try to read the incoming message. The expected content type is json
-        try:
-            message = json.loads(content)
-        except json.JSONDecodeError as error:
-            # Reject the message if the content could not be parsed
-            channel.basic_reject(
-                delivery_tag=delivery.delivery_tag,
-                requeue=False
-            )
-            response_content = {
-                'error': 'json_parse_error',
-                'error_description': 'The message could not be parsed as json. The parser '
-                                     'reported the following issue: %s'.format(error)
-            }
-            return self.__channel.basic_publish(
-                exchange='',
-                routing_key=properties.reply_to,
-                body=json.dumps(response_content, ensure_ascii=False).encode('utf-8')
-            )
-        # Acknowledge the message
-        channel.basic_ack(delivery_tag=delivery.delivery_tag)
-        # Run the executor by passing the whole message to it and let the executor decide what to do
-        try:
-            response_content = executor.execute(message)
-        except Exception as error:  # pylint: disable=broad-except
-            response_content = {
-                "error": str(error)
-            }
-        # Send the response back to the message broker
-        channel.basic_publish(
-            exchange='',
-            routing_key=properties.reply_to,
-            properties=pika.BasicProperties(
-                correlation_id=properties.correlation_id
-            ),
-            body=json.dumps(response_content, ensure_ascii=False).encode('utf-8')
+        # Create some message properties for every response
+        _msg_properties = pika.BasicProperties(
+            correlation_id=msg_prop.correlation_id if msg_prop.correlation_id is not None else "",
+            app_id='AUTH_SERVER'
         )
+        # Try to get the credentials from the message headers
+        _foreign_client_id = msg_prop.app_id
+        _foreign_client_secret = msg_prop.headers.get('X-WISdoM-Auth', None)
+        # Now check if any of the values are NoneType
+        if None in [_foreign_client_id, _foreign_client_secret]:
+            # Reject the message due to the missing authorization
+            self.__logger.warning(
+                'The received message will be rejected due to missing Authorization information. '
+                'The sender will be informed about this if any reply-to address and a correlation '
+                'id was set'
+            )
+            channel.basic_reject(delivery.delivery_tag, requeue=False)
+            # Check if the reply-to attribute was set
+            if msg_prop.reply_to is not None:
+                # Send a error message
+                channel.basic_publish(
+                    exchange='',
+                    routing_key=msg_prop.reply_to,
+                    body=AMQPErrorResponse(
+                        status='error',
+                        error='MISSING_AUTHORIZATION',
+                        error_description='The required authorization information was not found'
+                    ).json().encode('utf-8'),
+                    properties=_msg_properties
+                )
+            else:
+                self.__logger.error(
+                    'The message either contained no reply-to field or no correlation id or both '
+                    'fields are missing. Therefore the message will be rejected without any '
+                    'explanation'
+                )
+            return
+        # Now check if the client secret and id are valid
+        if not security.client_credentials_valid(_foreign_client_id, _foreign_client_secret):
+            self.__logger.warning(
+                'An unauthorized message was received. The message will be rejected without '
+                'requeueing the message. If a routing key was set the sender will be informed of '
+                'this'
+            )
+            channel.basic_reject(delivery.delivery_tag, requeue=False)
+            # Check if a reply to attribute was set
+            if msg_prop.reply_to is not None:
+                # Send a error message
+                channel.basic_publish(
+                    exchange='',
+                    routing_key=msg_prop.reply_to,
+                    body=AMQPErrorResponse(
+                        status='error',
+                        error='INVALID_GRANT',
+                        error_description='The authorization credentials are not valid. Please '
+                                          'check your credentials'
+                    ).json().encode('utf-8'),
+                    properties=_msg_properties
+                )
+            else:
+                self.__logger.info(
+                    'The message did not contain a reply-to property. Therefore the sender will '
+                    'not be informed of the error'
+                )
+            return
+        # Since the message was valid run the message executor which will receive the message
+        # body only
+        _exc_result = executor.execute({"payload": ujson.loads(content)})
