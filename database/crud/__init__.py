@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from passlib.hash import pbkdf2_sha512 as pass_hash
 
 import models.http.outgoing
+import models.shared
 from models.http.incoming import NewUserAccount
 
 from .. import tables
@@ -128,7 +129,7 @@ def get_scope_by_value(scope_value: str, session: Session) -> typing.Optional[ta
     return session.query(tables.Scope).filter(tables.Scope.scope_value == scope_value).first()
 
 
-def add_scope(new_scope: models.http.incoming.Scope, session: Session) -> tables.Scope:
+def add_scope(new_scope: models.shared.Scope, session: Session) -> tables.Scope:
     """Add a new Scope to the system
 
     :param new_scope: The new scope for the environment
