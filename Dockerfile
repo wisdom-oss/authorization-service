@@ -14,7 +14,7 @@ COPY requirements.txt /opt/auth-service
 RUN python -m pip install -r /opt/auth-service/requirements.txt
 # Install hypercorn as http server
 RUN python -m pip install hypercorn[uvloop]
-RUN apt-get install wait-for-it
+RUN apt-get update && apt-get install wait-for-it
 # Set the working directory to the service folder
 WORKDIR /opt/auth-service
 # Change to the service user
