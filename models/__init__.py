@@ -17,7 +17,7 @@ class ServiceSettings(BaseSettings):
     )
     """URI pointing to a MariaDB or MySQL Database instance containing the authorization tables"""
 
-    service_registry_host: AnyHttpUrl = Field(
+    service_registry_host: str = Field(
         default=...,
         env='SERVICE_REGISTRY_HOST',
         alias='SERVICE_REGISTRY_HOST'
