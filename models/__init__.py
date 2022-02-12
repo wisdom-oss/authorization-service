@@ -17,10 +17,10 @@ class ServiceSettings(BaseSettings):
     )
     """URI pointing to a MariaDB or MySQL Database instance containing the authorization tables"""
 
-    service_registry_url: AnyHttpUrl = Field(
+    service_registry_host: AnyHttpUrl = Field(
         default=...,
-        env='SERVICE_REGISTRY_URL',
-        alias='SERVICE_REGISTRY_URL'
+        env='SERVICE_REGISTRY_HOST',
+        alias='SERVICE_REGISTRY_HOST'
     )
     """URL pointing to a service registry installation (currently supported: Netflix Eureka)"""
 
