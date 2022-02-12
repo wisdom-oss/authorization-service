@@ -51,7 +51,7 @@ def api_startup():
     __settings = ServiceSettings()
     # Create a new service registry client
     __service_registry_client = EurekaClient(
-        eureka_server=__settings.service_registry_url,
+        eureka_server=f'http://{__settings.service_registry_host}',
         app_name='authorization-service',
         instance_port=5000,
         should_register=True,
