@@ -22,5 +22,5 @@ USER auth-service
 # Expose the port used by uvicorn
 EXPOSE 5000
 # Set the entrypoint to the service.py
-ENTRYPOINT wait-for-it $SERVICE_REGISTRY_HOST -s -q -t 0 -- hypercorn -b0.0.0.0:5000 -w16 -kuvloop api:auth_service_rest
+ENTRYPOINT wait-for-it ${SERVICE_REGISTRY_HOST} -s -q -t 0 -- hypercorn -b0.0.0.0:5000 -w16 -kuvloop api:auth_service_rest
 
