@@ -93,10 +93,9 @@ def __check_required_tables(__db_session: DatabaseSession = next(session())):
     """
     # Check if the admin scope exists in the database
     if crud.get_scope_by_value("admin", __db_session) is None:
-        __logger.error('The scope "admin" was not found in the database. Therefore the '
-                       'authorization service is not manageable. For more information, '
-                       'please confer to the documentation: NO_ADMIN_SCOPE')
-        sys.exit(1)
+        __logger.warning('The scope "admin" was not found in the database. Therefore the '
+                         'authorization service is not manageable. For more information, '
+                         'please confer to the documentation: NO_ADMIN_SCOPE')
     if crud.get_scope_by_value("me", __db_session) is None:
         __logger.warning('The scope "me" was not found in the database. You should recreate this '
                          'scope since users (who are not admins) may not read their own account '
@@ -109,7 +108,6 @@ def __check_required_tables(__db_session: DatabaseSession = next(session())):
                        'system. Please try to fix problem by manually logging in to the '
                        'database and recreating a user with the admin scope. For more '
                        'information please confer to the documentation. NO_USERS_FOUND')
-        sys.exit(1)
     else:
         # Iterate through the users and check if any user with an "admin" scope is present in
         # the system
