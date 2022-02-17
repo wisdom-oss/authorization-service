@@ -74,7 +74,7 @@ class ReconnectingAMQPConsumer:
         if self.__consumer.should_reconnect:
             self.__amqp_reconnection_try_counter += 1
             self.__consumer.stop()
-            self.__logger.info(
+            self.__logger.debug(
                 'Reconnecting to the message broker in %d seconds',
                 self.__amqp_reconnection_delay
             )

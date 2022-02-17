@@ -70,11 +70,11 @@ class BasicAMQPConsumer:
         """Close the existing message broker connection in a clean way"""
         if not self.__closing:
             self.__closing = True
-            self.__logger.info("Closing the connection to the message broker")
+            self.__logger.debug("Closing the connection to the message broker")
             if self.__consuming:
                 self.__stop_consuming()
                 self.__connection.ioloop.start()
-            self.__logger.info("Closed the connection to the message broker")
+            self.__logger.debug("Closed the connection to the message broker")
         else:
             self.__logger.debug("The connection is already being closed!")
             self.__connection.ioloop.stop()
@@ -85,7 +85,7 @@ class BasicAMQPConsumer:
         :return: Connection to the message broker
         :rtype: pika.SelectConnection
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Connecting to the message broker on %s',
             self.__amqp_url
         )
@@ -104,12 +104,12 @@ class BasicAMQPConsumer:
 
     def __open_channel(self):
         """Open a new channel to the message broker"""
-        self.__logger.info('Trying to open a new channel to the message broker')
+        self.__logger.debug('Trying to open a new channel to the message broker')
         self.__connection.channel(on_open_callback=self.__callback_channel_opened)
 
     def __close_channel(self):
         """Close the current channel"""
-        self.__logger.info(
+        self.__logger.debug(
             "Closing the current channel (channel ID: %s)",
             self.__channel.channel_number
         )
@@ -123,13 +123,13 @@ class BasicAMQPConsumer:
         elif self.__connection.is_closed:
             self.__logger.debug("The connection to the message broker was closed already")
         else:
-            self.__logger.info("Closing the connection to the message broker")
+            self.__logger.debug("Closing the connection to the message broker")
             self.__connection.close()
 
     def __stop_consuming(self):
         """This will stop the consuming of messages by this consumer"""
         if self.__channel:
-            self.__logger.info('Canceling the consuming process')
+            self.__logger.debug('Canceling the consuming process')
             self.__channel.queue_delete(
                 queue=self.__amqp_queue,
                 if_unused=False,
@@ -150,7 +150,7 @@ class BasicAMQPConsumer:
 
         :return:
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Setting up the exchange "%s" on the channel #%i',
             self.__amqp_exchange, self.__channel.channel_number
         )
@@ -166,7 +166,7 @@ class BasicAMQPConsumer:
 
         :return:
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Trying to declare a queue on the exchange "%s"',
             self.__amqp_exchange
         )
@@ -180,7 +180,7 @@ class BasicAMQPConsumer:
 
         :return:
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Starting to consume messages from exchange %s',
             self.__amqp_exchange
         )
@@ -198,7 +198,7 @@ class BasicAMQPConsumer:
 
         :param __connection: Connection handle which was opened
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Opened connection "%s" to message broker.',
             __connection.params.client_properties.get('connection_name')
         )
@@ -249,7 +249,7 @@ class BasicAMQPConsumer:
 
         This will save the channel to the object and try to set up an exchange on this channel
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Opened channel (Channel ID: %s) to the message broker',
             __channel.channel_number
         )
@@ -288,7 +288,7 @@ class BasicAMQPConsumer:
         :param __frame:
         :return:
         """
-        self.__logger.info("Channel was cancelled successfully")
+        self.__logger.debug("Channel was cancelled successfully")
         self.__consuming = False
         self.__close_channel()
 
@@ -300,7 +300,7 @@ class BasicAMQPConsumer:
 
         :param __frame: Method frame
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Successfully declared the exchange %s on the channel #%i',
             self.__amqp_exchange, self.__channel.channel_number
         )
@@ -315,7 +315,7 @@ class BasicAMQPConsumer:
         :param __frame: Frame indicating the status of the executed command
         :return:
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Successfully declared queue "%s" on exchange "%s"',
             self.__amqp_queue, self.__amqp_exchange
         )
@@ -334,7 +334,7 @@ class BasicAMQPConsumer:
         :param __frame:
         :return:
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Successfully bound queue "%s" to the exchange "%s"',
             self.__amqp_queue, self.__amqp_exchange
         )
@@ -352,7 +352,7 @@ class BasicAMQPConsumer:
         :param __frame:
         :return:
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Successfully deleted queue "%s" from the exchange "%s"',
             self.__amqp_queue, self.__amqp_exchange
         )
@@ -367,7 +367,7 @@ class BasicAMQPConsumer:
         :param __frame:
         :return:
         """
-        self.__logger.info(
+        self.__logger.debug(
             'Successfully set the QOS prefetch count to %d',
             self.__prefetch_count
         )
@@ -465,7 +465,7 @@ class BasicAMQPConsumer:
                     properties=_msg_properties
                 )
             else:
-                self.__logger.info(
+                self.__logger.debug(
                     'The message did not contain a reply-to property. Therefore the sender will '
                     'not be informed of the error'
                 )
@@ -480,7 +480,7 @@ class BasicAMQPConsumer:
             )
             return
         _exc_result = executor.execute({"payload": ujson.loads(content)})
-        self.__logger.info('Executed action successfully. Now returning the message')
+        self.__logger.debug('Executed action successfully. Now returning the message')
         # Return the message to the message broker
         channel.basic_publish(
             exchange='',
