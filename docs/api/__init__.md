@@ -119,11 +119,11 @@ during the users authorization
 ```python
 @auth_service_rest.post(
     path='/oauth/check_token',
-    response_model=outgoing.TokenIntrospection,
+    response_model=models.shared.TokenIntrospectionResult,
     response_model_exclude_none=True,
     response_model_by_alias=False
 )
-async def oauth_token_introspection(_active_user: tables.Account = Security(dependencies.get_current_user), db_session: Session = Depends(database.session), token: str = Form(...), scope: Optional[str] = Form(None)) -> outgoing.TokenIntrospection
+async def oauth_token_introspection(_active_user: tables.Account = Security(dependencies.get_current_user), db_session: Session = Depends(database.session), token: str = Form(...), scope: Optional[str] = Form(None)) -> models.shared.TokenIntrospectionResult
 ```
 
 Run an introspection of a token to check its validity
@@ -357,7 +357,7 @@ The requested scope if it was found
     response_model_exclude_none=True,
     response_model_by_alias=True
 )
-async def scopes_update_scope(scope_id: int, update_info: incoming.ScopeUpdate = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Scope
+async def scopes_update_scope(scope_id: int, update_info: models.shared.ScopeUpdate = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Scope
 ```
 
 Update an already present scope
@@ -427,7 +427,7 @@ A list of all scopes
     response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED
 )
-async def scopes_add(new_scope: incoming.Scope = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+async def scopes_add(new_scope: models.shared.Scope = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
 ```
 
 Create a new Role in the database

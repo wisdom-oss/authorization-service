@@ -1,8 +1,23 @@
 """Module containing the data models for validating requests and responses as well as enabling
 the settings"""
 from pydantic import AnyHttpUrl, BaseSettings, Field, stricturl, AmqpDsn
+from pydantic import BaseModel as PydanticBaseModel
 
 # pylint: disable=too-few-public-methods
+
+
+class BaseModel(PydanticBaseModel):
+    """A basic data model containing a configuration which will be inherited into other models"""
+
+    class Config:
+        """The basic configuration for every model"""
+
+        orm_mode = True
+        """Allow the model to read information of ORMs"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to populate fields by their name and not alias during parsing of 
+        objects, raw input or ORMs"""
 
 
 class ServiceSettings(BaseSettings):

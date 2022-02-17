@@ -4,8 +4,9 @@ import typing
 from sqlalchemy.orm import Session
 from passlib.hash import pbkdf2_sha512 as pass_hash
 
-import models.outgoing
-from models.incoming import NewUserAccount
+import models.http.outgoing
+import models.shared
+from models.http.incoming import NewUserAccount
 
 from .. import tables
 
@@ -128,7 +129,7 @@ def get_scope_by_value(scope_value: str, session: Session) -> typing.Optional[ta
     return session.query(tables.Scope).filter(tables.Scope.scope_value == scope_value).first()
 
 
-def add_scope(new_scope: models.incoming.Scope, session: Session) -> tables.Scope:
+def add_scope(new_scope: models.shared.Scope, session: Session) -> tables.Scope:
     """Add a new Scope to the system
 
     :param new_scope: The new scope for the environment
@@ -230,7 +231,7 @@ def get_role(role_id: int, session: Session) -> tables.Role:
     return session.query(tables.Role).filter(tables.Role.role_id == role_id).first()
 
 
-def add_role(new_role: models.incoming.Role, session: Session) -> tables.Role:
+def add_role(new_role: models.http.incoming.Role, session: Session) -> tables.Role:
     """Add a new role to the system
 
     :param new_role: The role which shall be inserted
@@ -334,3 +335,16 @@ def clear_mapping_entries(
     :return:
     """
     db_session.query(table).filter(table.role_id == main_key).delete()
+
+
+def get_client_credential_by_client_id(client_id: str, session: Session) -> tables.ClientCredential:
+    """Get a client credential from the database
+
+    :param client_id: The client id which shall be queried for
+    :param session: The database session used to access the database
+    :return:
+    """
+    return (session
+            .query(tables.ClientCredential)
+            .filter(tables.ClientCredential.client_id == client_id)
+            .first())

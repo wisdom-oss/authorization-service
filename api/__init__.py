@@ -15,9 +15,12 @@ from starlette import status
 from starlette.responses import FileResponse, Response
 
 import database
+import models.shared
+import security
 from database import Scope, tables
 from exceptions import AuthorizationException, ObjectNotFoundException
-from models import ServiceSettings, incoming, outgoing
+from models import ServiceSettings
+from models.http import incoming, outgoing
 from . import dependencies, utilities
 
 auth_service_rest = RESTApplication()
@@ -272,7 +275,7 @@ async def oauth_login(
 
 @auth_service_rest.post(
     path='/oauth/check_token',
-    response_model=outgoing.TokenIntrospection,
+    response_model=models.shared.TokenIntrospectionResult,
     response_model_exclude_none=True,
     response_model_by_alias=False
 )
@@ -281,7 +284,7 @@ async def oauth_token_introspection(
         db_session: Session = Depends(database.session),
         token: str = Form(...),
         scope: Optional[str] = Form(None)
-) -> outgoing.TokenIntrospection:
+) -> models.shared.TokenIntrospectionResult:
     """Run an introspection of a token to check its validity
 
     The check may be run as check for the general validity. It also may be run against one or
@@ -293,65 +296,7 @@ async def oauth_token_introspection(
     :param scope: The scopes against which the token shall be tested explicitly
     :return: The introspection response
     """
-    # Receive the token data from both_tables
-    _access_token_data = database.crud.get_access_token_by_token(token, db_session)
-    _refresh_token_data = database.crud.get_refresh_token_by_token(token, db_session)
-    _token_data: Union[tables.AccessToken, tables.RefreshToken]
-    if _access_token_data is not None and _refresh_token_data is None:
-        _token_data = _access_token_data
-    elif _access_token_data is None and _refresh_token_data is not None:
-        _token_data = _refresh_token_data
-    else:
-        return outgoing.TokenIntrospection(
-            active=False
-        )
-    # Now check if the token has expired
-    if time.time() >= _token_data.expires or not _token_data.user[0].is_active:
-        return outgoing.TokenIntrospection(
-            active=False
-        )
-    # Now check if the token is an access token and the active state is set correctly
-    if isinstance(_token_data, database.tables.AccessToken) and not _token_data.active:
-        return outgoing.TokenIntrospection(
-            active=False
-        )
-    # Create a list of scope values associated to the token
-    _token_scopes: list[str] = []
-    for _token_scope in _token_data.scopes:
-        _token_scopes.append(_token_scope.scope_value)
-    # Check if the token has the same user assigned as the currently active user
-    if _token_data.user[0] != _active_user:
-        raise AuthorizationException(
-            short_error="no_privileges",
-            http_status_code=status.HTTP_403_FORBIDDEN,
-            optional_data="scope=admin"
-        )
-    # Now check if the scope string was set and has any content
-    if scope is not None and scope.strip() != "":
-        # Now iterate though the scopes in the scope string anc check if the scopes are in the
-        # tokens scope.
-        if any(_scope not in _token_scopes for _scope in scope.split()):
-            return outgoing.TokenIntrospection(
-                active=False
-            )
-        # All scopes which were queried are in the tokens scopes therefore return a complete
-        # introspection response
-        return outgoing.TokenIntrospection(
-            active=True,
-            scope=scope,
-            username=_token_data.user[0].username,
-            token_type='access_token',
-            exp=_token_data.expires,
-            iat=_token_data.created if isinstance(_token_data, tables.AccessToken) else None
-        )
-    return outgoing.TokenIntrospection(
-        active=True,
-        scope=' '.join(_token_scopes),
-        username=_token_data.user[0].username,
-        token_type='access_token',
-        exp=_token_data.expires,
-        iat=_token_data.created if isinstance(_token_data, tables.AccessToken) else None
-    )
+    return security.run_token_introspection(token, scope, db_session)
 
 
 @auth_service_rest.post(
@@ -665,7 +610,7 @@ async def scopes_get_scope_information(
 )
 async def scopes_update_scope(
         scope_id: int,
-        update_info: incoming.ScopeUpdate = Body(...),
+        update_info: models.shared.ScopeUpdate = Body(...),
         _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
         db_session: Session = Depends(database.session)
 ) -> tables.Scope:
@@ -748,7 +693,7 @@ async def scopes_get_all(
     status_code=status.HTTP_201_CREATED
 )
 async def scopes_add(
-        new_scope: incoming.Scope = Body(...),
+        new_scope: models.shared.Scope = Body(...),
         _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
         db_session: Session = Depends(database.session)
 ):

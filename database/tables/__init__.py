@@ -90,7 +90,7 @@ class RefreshToken(TableDeclarationBase):
     refresh_token_id = Column(Integer, primary_key=True, autoincrement=True)
     """Internal id of the refresh token"""
 
-    refresh_token = Column(String(length=36), unique=True)
+    refresh_token = Column(String(length=128), unique=True)
     """Actual refresh token"""
 
     expires = Column(Integer, nullable=False)
@@ -131,6 +131,28 @@ class Account(TableDeclarationBase):
 
     roles = relationship("Role", secondary='account_roles')
     """Roles assigned to the account"""
+
+
+class ClientCredential(TableDeclarationBase):
+    """ORM for a client credential for amqp applications"""
+
+    __tablename__ = 'client_credentials'
+    """The name of the database table"""
+
+    credential_id = Column(Integer, primary_key=True, autoincrement=True)
+    """The internal id of the credential"""
+
+    credential_title = Column(String(length=255), nullable=False)
+    """The title for this client credential"""
+
+    client_id = Column(String(length=255), nullable=False)
+    """The identification of the client"""
+
+    client_secret = Column(String(length=255), nullable=False)
+    """The hashed client secret"""
+
+    client_scopes = Column(Text, nullable=False, default="")
+    """The scopes the client is allowed to use"""
 
 
 class RoleToScope(TableDeclarationBase):

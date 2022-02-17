@@ -1,12 +1,14 @@
 # pylint: disable=too-few-public-methods, duplicate-code
 """Datamodels for outgoing data"""
-from typing import List, Optional, Set
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
-from models import incoming
+
+import models.shared
+from models.http import incoming
 
 
-class Scope(incoming.Scope):
+class Scope(models.shared.Scope):
     """Data model for describing a scope which can be used in incoming/outgoing communication"""
     scope_id: int = Field(
         default=...,
@@ -196,61 +198,3 @@ class TokenSet(BaseModel):
         """Allow pydantic to use the aliases to read properties"""
 
 
-class TokenIntrospection(BaseModel):
-    """Pydantic data model for a token introspection response"""
-
-    active: bool = Field(
-        default=...,
-        alias='active',
-        title='Status of the presented token',
-        description='The value of this is "true" if the token may be used for authorizing on the '
-                    'server'
-    )
-    """Status of the token (true if is active and not revoked)"""
-
-    scopes: Optional[str] = Field(
-        default=None,
-        alias='scope',
-        title='OAuth2.0 Scopes',
-        description='Scopes this token was associated with'
-    )
-    """Scopes this token was associated with"""
-
-    username: Optional[str] = Field(
-        default=None,
-        alias='username',
-        description='Owner of the token'
-    )
-    """Username identifying the owner of the token"""
-
-    token_type: Optional[str] = Field(
-        default=None,
-        alias='token_type',
-        description='Type of the token (either access_token or refresh_token)'
-    )
-    """Type of the token (either access_token or refresh_token)"""
-
-    exp: Optional[int] = Field(
-        default=None,
-        alias='exp',
-        description='UNIX timestamp of the expiry time'
-    )
-    """UNIX timestamp of expire time and date"""
-
-    iat: Optional[int] = Field(
-        default=None,
-        alias='iat',
-        description='UNIX timestamp indicating the creation time of the token'
-    )
-
-    class Config:
-        """Configuration for this pydantic model"""
-
-        orm_mode = True
-        """Allow the reading of properties via a orm model"""
-
-        allow_population_by_field_name = True
-        """Allow pydantic to use the field names to read the properties"""
-
-        allow_population_by_alias = True
-        """Allow pydantic to use the aliases to read properties"""

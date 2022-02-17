@@ -5,12 +5,11 @@ import sys
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
-import sqlalchemy.ext.declarative
 from sqlalchemy_utils import database_exists, create_database
 from passlib import pwd
 
 import models
-import models.incoming
+import models.http.incoming
 from . import crud
 from .tables import Scope, TableDeclarationBase, Account
 
@@ -46,7 +45,7 @@ def _engine() -> Engine:
 def __generate_root_user(__db_session: DatabaseSession = next(session())):
     """Generate a new root user with the user id of 0 and the admin and me scope"""
     # Create the new user object
-    _root_user = models.incoming.NewUserAccount(
+    _root_user = models.http.incoming.NewUserAccount(
         first_name='System',
         last_name='Administrator',
         username='root',

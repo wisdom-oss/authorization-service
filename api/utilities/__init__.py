@@ -2,11 +2,12 @@
 import time
 import uuid
 from typing import List, Optional
+from hashlib import sha512
 
 from sqlalchemy.orm import Session
 
 import database.tables
-import models.outgoing
+import models.http.outgoing
 
 ACCESS_TOKEN_TTL = 3600
 """TTL for a access token in seconds (1h)"""
@@ -19,7 +20,7 @@ def generate_token_set(
         user: database.tables.Account,
         db_session: Session,
         scopes: Optional[List[str]] = None
-) -> models.outgoing.TokenSet:
+) -> models.http.outgoing.TokenSet:
     """Generate a new token set and insert it into the database
 
     :param db_session: The Database connection used to insert the token set
@@ -73,7 +74,7 @@ def generate_token_set(
 
     # Create a refresh token for the account
     _refresh_token = database.tables.RefreshToken(
-        refresh_token=str(uuid.uuid4()),
+        refresh_token=sha512(uuid.uuid4().bytes).hexdigest(),
         expires=_generation_time + REFRESH_TOKEN_TTL
     )
     # Add the refresh token to the database
@@ -117,7 +118,7 @@ def generate_token_set(
         _scope_string += f"{scope.scope_value} "
     _scope_string = _scope_string.strip()
     # Now return the TokenSet
-    return models.outgoing.TokenSet(
+    return models.http.outgoing.TokenSet(
         access_token=_token.token,
         expires_in=ACCESS_TOKEN_TTL,
         refresh_token=_refresh_token.refresh_token,

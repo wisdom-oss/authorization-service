@@ -51,23 +51,89 @@
     },
     {
       "items": [
+        "messaging/__init__",
+        "messaging/basic_consumer",
+        "messaging/executor",
+        "messaging/reconnecting_consumer"
+      ],
+      "label": "messaging",
+      "type": "category"
+    },
+    {
+      "items": [
         {
           "items": [
-            "models/incoming/__init__"
+            {
+              "items": [
+                "models/amqp/incoming/__init__"
+              ],
+              "label": "models.amqp.incoming",
+              "type": "category"
+            },
+            {
+              "items": [
+                "models/amqp/outgoing/__init__"
+              ],
+              "label": "models.amqp.outgoing",
+              "type": "category"
+            },
+            "models/amqp/__init__"
           ],
-          "label": "models.incoming",
+          "label": "models.amqp",
           "type": "category"
         },
         {
           "items": [
-            "models/outgoing/__init__"
+            "models/enums/__init__"
           ],
-          "label": "models.outgoing",
+          "label": "models.enums",
+          "type": "category"
+        },
+        {
+          "items": [
+            {
+              "items": [
+                "models/http/incoming/__init__"
+              ],
+              "label": "models.http.incoming",
+              "type": "category"
+            },
+            {
+              "items": [
+                "models/http/outgoing/__init__"
+              ],
+              "label": "models.http.outgoing",
+              "type": "category"
+            },
+            "models/http/__init__"
+          ],
+          "label": "models.http",
+          "type": "category"
+        },
+        {
+          "items": [
+            "models/shared/__init__"
+          ],
+          "label": "models.shared",
           "type": "category"
         },
         "models/__init__"
       ],
       "label": "models",
+      "type": "category"
+    },
+    {
+      "items": [
+        "security/__init__"
+      ],
+      "label": "security",
+      "type": "category"
+    },
+    {
+      "items": [
+        "tools/__init__"
+      ],
+      "label": "tools",
       "type": "category"
     }
   ],

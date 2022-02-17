@@ -8,6 +8,36 @@ Module containing the data models for validating requests and responses as well 
 the settings
 
 
+## BaseModel Objects
+
+```python
+class BaseModel(PydanticBaseModel)
+```
+
+A basic data model containing a configuration which will be inherited into other models
+
+
+## Config Objects
+
+```python
+class Config()
+```
+
+The basic configuration for every model
+
+
+#### orm\_mode
+
+Allow the model to read information of ORMs
+
+
+#### allow\_population\_by\_field\_name
+
+Allow pydantic to populate fields by their name and not alias during parsing of
+
+objects, raw input or ORMs
+
+
 ## ServiceSettings Objects
 
 ```python

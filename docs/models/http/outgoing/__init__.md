@@ -1,6 +1,6 @@
 ---
 sidebar_label: outgoing
-title: models.outgoing
+title: models.http.outgoing
 ---
 
 Datamodels for outgoing data
@@ -9,9 +9,6 @@ Datamodels for outgoing data
 ## Scope Objects
 
 ```python
-import models.shared
-
-
 class Scope(models.shared.Scope)
 ```
 
@@ -200,64 +197,6 @@ Refresh token which may be used to get a new access token
 #### scope
 
 Scope string for this token (optional if the token has the same scopes as requested)
-
-
-## Config Objects
-
-```python
-class Config()
-```
-
-Configuration for this pydantic model
-
-
-#### orm\_mode
-
-Allow the reading of properties via a orm model
-
-
-#### allow\_population\_by\_field\_name
-
-Allow pydantic to use the field names to read the properties
-
-
-#### allow\_population\_by\_alias
-
-Allow pydantic to use the aliases to read properties
-
-
-## TokenIntrospection Objects
-
-```python
-class TokenIntrospection(BaseModel)
-```
-
-Pydantic data model for a token introspection response
-
-
-#### active
-
-Status of the token (true if is active and not revoked)
-
-
-#### scopes
-
-Scopes this token was associated with
-
-
-#### username
-
-Username identifying the owner of the token
-
-
-#### token\_type
-
-Type of the token (either access_token or refresh_token)
-
-
-#### exp
-
-UNIX timestamp of expire time and date
 
 
 ## Config Objects
