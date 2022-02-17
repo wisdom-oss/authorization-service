@@ -14,7 +14,7 @@ __logger = logging.getLogger(__name__)
 
 ResponseTypes = typing.TypeVar(
     'ResponseTypes',
-    AMQPErrorResponse, TokenIntrospectionResult, AMQPScopeResponse
+    AMQPErrorResponse, TokenIntrospectionResult, AMQPScopeResponse, BasicAMQPResponse
 )
 
 
@@ -64,6 +64,17 @@ def execute(message: dict) -> ResponseTypes:
         _session.commit()
         _session.refresh(_scope)
         return AMQPScopeResponse.parse_obj(_scope)
+    elif isinstance(request.payload, AMQPDeleteScopeRequest):
+        # Create a new db instance
+        _session = next(database.session())
+        # Get the scope from the database
+        _scope = database.crud.get_scope(request.payload.scope_id, _session)
+        # Call the session to delete this
+        _session.delete(_scope)
+        # Commit all changes
+        _session.commit()
+        # Return that this action was a success
+        return BasicAMQPResponse()
     else:
         return AMQPErrorResponse(
             error='NOT_IMPLEMENTED',

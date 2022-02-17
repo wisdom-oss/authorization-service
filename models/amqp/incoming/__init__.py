@@ -53,11 +53,27 @@ class AMQPUpdateScopeRequest(models.shared.ScopeUpdate):
     )
 
 
+class AMQPDeleteScopeRequest(BaseModel):
+
+    action = Literal[AMQPActions.DELETE_SCOPE]
+    """The action which shall be executed"""
+
+    scope_id = Field(
+        default=...,
+        alias='scopeID',
+        title='Internal Scope ID',
+        description='The ID of the scope that shall be modified'
+    )
+
+
 class IncomingAMQPRequest(BaseModel):
     """
     A data model for incoming AMQP messages
     """
 
-    payload: Union[AMQPValidateTokenRequest, AMQPCreateScopeRequest] = Field(
+    payload: Union[
+        AMQPValidateTokenRequest, AMQPCreateScopeRequest, AMQPDeleteScopeRequest,
+        AMQPUpdateScopeRequest
+    ] = Field(
         default=..., discriminator='action'
     )
