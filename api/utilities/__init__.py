@@ -90,12 +90,12 @@ def generate_token_set(
         # Use the scopes the user owns
         for scope in user.scopes:
             # Create a mapping entry
-            _token_scope_mapping = database.tables.RefreshTokenToScopes(
-                token_id=_token.token_id,
+            _refresh_token_scope_mapping = database.tables.RefreshTokenToScopes(
+                token_id=_refresh_token.refresh_token_id,
                 scope_id=scope.scope_id
             )
             # Insert the mapping into the database
-            database.crud.add_to_database(_token_scope_mapping, db_session)
+            database.crud.add_to_database(_refresh_token_scope_mapping, db_session)
     else:
         for scope_value in scopes:
             # Get the scope data from the database
@@ -103,12 +103,12 @@ def generate_token_set(
             # Check if the scope still exists
             if _scope is not None:
                 # Create a mapping entry
-                _token_scope_mapping = database.tables.RefreshTokenToScopes(
+                _refresh_token_scope_mapping = database.tables.RefreshTokenToScopes(
                     token_id=_refresh_token.refresh_token_id,
                     scope_id=_scope.scope_id
                 )
                 # Insert the mapping into the database
-                database.crud.add_to_database(_token_scope_mapping, db_session)
+                database.crud.add_to_database(_refresh_token_scope_mapping, db_session)
     # Now generate the returned token set
     # Refresh the access token
     db_session.refresh(_token)
