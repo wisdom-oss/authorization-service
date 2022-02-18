@@ -1,6 +1,8 @@
 """Module containing the routes and actions run when requesting a specific route"""
 import logging
 import time
+from multiprocessing import Process
+from threading import Thread
 from typing import Optional, Union
 
 import sqlalchemy.exc
@@ -19,6 +21,7 @@ import models.shared
 import security
 from database import Scope, tables
 from exceptions import AuthorizationException, ObjectNotFoundException
+from messaging.reconnecting_consumer import ReconnectingAMQPConsumer
 from models import ServiceSettings
 from models.http import incoming, outgoing
 from . import dependencies, utilities
@@ -32,6 +35,9 @@ __logger = logging.getLogger('API')
 __settings: Optional[ServiceSettings] = None
 # Create a service registry client
 __service_registry_client: Optional[EurekaClient] = None
+# Create a new RPC Server and process
+__rpc_server: Optional[ReconnectingAMQPConsumer] = None
+__rpc_process: Optional[Thread] = None
 
 
 # == Event handlers == #
@@ -41,20 +47,18 @@ def api_startup():
 
     The code will be executed before any HTTP incoming will be accepted
     """
-    # Configure Logging to force using the info level
     logging.basicConfig(
-        level=logging.INFO,
-        force=True
+        level=logging.INFO
     )
     # Get a logger for this event
     __log = logging.getLogger('API.startup')
     # Enable the global usage of the service settings and the service registry client
-    global __settings, __service_registry_client  # pylint: disable=invalid-name, global-statement
+    global __settings, __service_registry_client, __rpc_server, __rpc_process # pylint: disable=invalid-name, global-statement
     # Read the settings
     __settings = ServiceSettings()
     # Create a new service registry client
     __service_registry_client = EurekaClient(
-        eureka_server=__settings.service_registry_url,
+        eureka_server=f'http://{__settings.service_registry_host}:8761',
         app_name='authorization-service',
         instance_port=5000,
         should_register=True,
@@ -68,6 +72,10 @@ def api_startup():
     __service_registry_client.status_update('STARTING')
     # Initialize the database models and connections and check for any errors in the database tables
     database.initialise_databases()
+    # Create a new AMQP listener
+    __rpc_server = ReconnectingAMQPConsumer(__settings.amqp_dsn, __settings.amqp_exchange)
+    __rpc_process = Thread(target=__rpc_server.start)
+    __rpc_process.start()
     # Inform the service registry of the new server status
     __service_registry_client.status_update('UP')
 
@@ -79,9 +87,12 @@ def api_shutdown():
     # Get a logger for this event
     __log = logging.getLogger('API.shutdown')
     # Enable the global usage of the registry client
-    global __service_registry_client  # pylint: disable=invalid-name
-    # Stop the client and deregister the service
+    global __service_registry_client, __rpc_server, __rpc_process  # pylint: disable=invalid-name
+    # Stop the client and de-register the service
     __service_registry_client.stop()
+    # Stop the rpc_process and client
+    __rpc_server.stop()
+    __rpc_process.join(timeout=30)
 
 
 # == Exception handlers ==
