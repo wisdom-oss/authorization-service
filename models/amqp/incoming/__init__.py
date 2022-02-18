@@ -36,16 +36,16 @@ class AMQPValidateTokenRequest(BaseModel):
 class AMQPCreateScopeRequest(models.shared.Scope):
     """A data model describing the amqp payload which needs to be sent"""
 
-    action = Literal[AMQPActions.ADD_SCOPE]
+    action: Literal[AMQPActions.ADD_SCOPE]
     """The action which shall be executed"""
 
 
 class AMQPUpdateScopeRequest(models.shared.ScopeUpdate):
 
-    action = Literal[AMQPActions.EDIT_SCOPE]
+    action: Literal[AMQPActions.EDIT_SCOPE]
     """The action which shall be executed"""
 
-    scope_id = Field(
+    scope_id: int = Field(
         default=...,
         alias='scopeID',
         title='Internal Scope ID',
@@ -55,10 +55,10 @@ class AMQPUpdateScopeRequest(models.shared.ScopeUpdate):
 
 class AMQPDeleteScopeRequest(BaseModel):
 
-    action = Literal[AMQPActions.DELETE_SCOPE]
+    action: Literal[AMQPActions.DELETE_SCOPE]
     """The action which shall be executed"""
 
-    scope_id = Field(
+    scope_id: int = Field(
         default=...,
         alias='scopeID',
         title='Internal Scope ID',
