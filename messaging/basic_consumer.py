@@ -1,6 +1,4 @@
 """AMQP Basic Consumer"""
-import functools
-import json
 import logging
 import uuid
 from typing import Optional
@@ -10,7 +8,6 @@ import pika.channel
 import pika.exchange_type
 import pika.frame
 import ujson
-
 from pydantic import AmqpDsn
 
 import security
@@ -59,6 +56,8 @@ class BasicAMQPConsumer:
         self.__closing = False
 
         self.should_reconnect = False
+        # Reduce the logging level of pika
+        logging.getLogger("pika").setLevel(logging.WARNING)
         """Indicates if a supported consumer should try to reconnect to the message broker"""
 
     def start(self):
