@@ -41,3 +41,14 @@ An entry was not found in the database. This will trigger an HTTP Status 400 in 
 application part.
 
 
+## AMQPInvalidMessageFormat Objects
+
+```python
+class AMQPInvalidMessageFormat(Exception)
+```
+
+The AMQP message received by the authorization service did not match the required data
+
+structure
+
+

@@ -216,6 +216,45 @@ Scopes assigned to the account
 Roles assigned to the account
 
 
+## ClientCredential Objects
+
+```python
+class ClientCredential(TableDeclarationBase)
+```
+
+ORM for a client credential for amqp applications
+
+
+#### \_\_tablename\_\_
+
+The name of the database table
+
+
+#### credential\_id
+
+The internal id of the credential
+
+
+#### credential\_title
+
+The title for this client credential
+
+
+#### client\_id
+
+The identification of the client
+
+
+#### client\_secret
+
+The hashed client secret
+
+
+#### client\_scopes
+
+The scopes the client is allowed to use
+
+
 ## RoleToScope Objects
 
 ```python

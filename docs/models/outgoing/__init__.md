@@ -9,7 +9,10 @@ Datamodels for outgoing data
 ## Scope Objects
 
 ```python
-class Scope(incoming.Scope)
+import models.shared
+
+
+class Scope(models.shared.Scope)
 ```
 
 Data model for describing a scope which can be used in incoming/outgoing communication

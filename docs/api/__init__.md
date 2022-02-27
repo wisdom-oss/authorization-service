@@ -119,11 +119,11 @@ during the users authorization
 ```python
 @auth_service_rest.post(
     path='/oauth/check_token',
-    response_model=outgoing.TokenIntrospection,
+    response_model=models.shared.TokenIntrospectionResult,
     response_model_exclude_none=True,
     response_model_by_alias=False
 )
-async def oauth_token_introspection(_active_user: tables.Account = Security(dependencies.get_current_user), db_session: Session = Depends(database.session), token: str = Form(...), scope: Optional[str] = Form(None)) -> outgoing.TokenIntrospection
+async def oauth_token_introspection(_active_user: tables.Account = Security(dependencies.get_current_user), db_session: Session = Depends(database.session), token: str = Form(...), scope: Optional[str] = Form(None)) -> models.shared.TokenIntrospectionResult
 ```
 
 Run an introspection of a token to check its validity
@@ -357,7 +357,7 @@ The requested scope if it was found
     response_model_exclude_none=True,
     response_model_by_alias=True
 )
-async def scopes_update_scope(scope_id: int, update_info: incoming.ScopeUpdate = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Scope
+async def scopes_update_scope(scope_id: int, update_info: models.shared.ScopeUpdate = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session)) -> tables.Scope
 ```
 
 Update an already present scope
@@ -427,7 +427,7 @@ A list of all scopes
     response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED
 )
-async def scopes_add(new_scope: incoming.Scope = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+async def scopes_add(new_scope: models.shared.Scope = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
 ```
 
 Create a new Role in the database
@@ -548,6 +548,64 @@ Add a new Role to the System
 - `new_role`: The new role which shall be inserted
 - `_active_user`: The user making the request
 - `db_session`: The database session used to insert the role
+
+#### delete\_client\_credential
+
+```python
+@auth_service_rest.delete(
+    path='/amqp/credentials/{credential_id}',
+    response_model=outgoing.ClientCredential,
+)
+async def delete_client_credential(credential_id: int, _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+```
+
+Delete a existing client credential
+
+**Arguments**:
+
+- `credential_id`: 
+- `_active_user`: 
+- `db_session`: 
+
+#### get\_client\_credentials
+
+```python
+@auth_service_rest.get(
+    path='/amqp/credentials',
+    response_model=list[outgoing.ClientCredential]
+)
+async def get_client_credentials(_active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+```
+
+Get a listing of all available Client credentials
+
+**Returns**:
+
+A List of client credentials
+
+#### create\_client\_credential
+
+```python
+@auth_service_rest.put(
+    path='/amqp/credentials',
+    response_model=outgoing.NewClientCredential,
+)
+async def create_client_credential(client_id: str = Body(...), credential_title: str = Body(...), client_scopes: str = Body(...), _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]), db_session: Session = Depends(database.session))
+```
+
+Create a new AMQP client credential
+
+**Arguments**:
+
+- `credential_title`: The human-identifiable credential title
+- `client_scopes`: The scopes this credential shall have
+- `client_id`: The Client for which the credential shall be created
+- `_active_user`: The currently active user
+- `db_session`: The database session used to insert the credential
+
+**Returns**:
+
+A set of client credentials which are only visible once
 
 #### status\_route
 

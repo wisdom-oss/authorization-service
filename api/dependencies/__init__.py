@@ -7,7 +7,6 @@ from pydantic import SecretStr
 from sqlalchemy.orm import Session
 from starlette import status
 
-import models.outgoing
 from database import session, crud, tables
 from exceptions import AuthorizationException
 
