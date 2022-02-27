@@ -348,3 +348,10 @@ def get_client_credential_by_client_id(client_id: str, session: Session) -> tabl
             .query(tables.ClientCredential)
             .filter(tables.ClientCredential.client_id == client_id)
             .first())
+
+
+def get_client_credential(credential_id, session):
+    return (session
+            .query(tables.ClientCredential)
+            .filter(tables.ClientCredential.credential_id == credential_id)
+            .first())
