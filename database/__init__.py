@@ -1,20 +1,26 @@
 """Database module used for ORM descriptions of the used tables"""
 import logging
+import sys
 
+from pydantic import ValidationError
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 
-import models.http.incoming
+from settings import DatabaseSettings
 from . import crud
 from .tables import Account, Scope, TableDeclarationBase
 
 __logger = logging.getLogger("DB")
 # Read the service configuration to be able to set the database connection
-__settings = models.ServiceSettings()
+try:
+    __settings = DatabaseSettings()
+except ValidationError as error:
+    logging.error('The settings for the database connection could not be read')
+    sys.exit(3)
 # Create a new (private) database engine
 __engine = create_engine(
-    url=__settings.database_dsn,
+    url=__settings.dsn,
     # Recreate the connection every 120 seconds. This is used to counter the forced disconnects
     # done by MariaDB servers
     pool_recycle=120
