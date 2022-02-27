@@ -436,67 +436,6 @@ class BasicAMQPConsumer:
             correlation_id=msg_prop.correlation_id if msg_prop.correlation_id is not None else "",
             app_id='AUTH_SERVER'
         )
-        # Try to get the credentials from the message headers
-        _foreign_client_id = msg_prop.app_id
-        _foreign_client_secret = msg_prop.headers.get('X-WISdoM-Auth', None)
-        # Now check if any of the values are NoneType
-        if None in [_foreign_client_id, _foreign_client_secret]:
-            # Reject the message due to the missing authorization
-            self.__logger.warning(
-                'The received message will be rejected due to missing Authorization information. '
-                'The sender will be informed about this if any reply-to address and a correlation '
-                'id was set'
-            )
-            channel.basic_reject(delivery.delivery_tag, requeue=False)
-            # Check if the reply-to attribute was set
-            if msg_prop.reply_to is not None:
-                # Send a error message
-                channel.basic_publish(
-                    exchange='',
-                    routing_key=msg_prop.reply_to,
-                    body=AMQPErrorResponse(
-                        error='MISSING_AUTHORIZATION',
-                        error_description='The required authorization information was not found'
-                    ).json().encode('utf-8'),
-                    properties=_msg_properties
-                )
-            else:
-                self.__logger.error(
-                    'The message either contained no reply-to field or no correlation id or both '
-                    'fields are missing. Therefore the message will be rejected without any '
-                    'explanation'
-                )
-            return
-        # Now check if the client secret and id are valid
-        if not security.client_credentials_valid(_foreign_client_id, _foreign_client_secret):
-            self.__logger.warning(
-                'An unauthorized message was received. The message will be rejected without '
-                'requeueing the message. If a routing key was set the sender will be informed of '
-                'this'
-            )
-            channel.basic_reject(delivery.delivery_tag, requeue=False)
-            # Check if a reply to attribute was set
-            if msg_prop.reply_to is not None:
-                # Send a error message
-                channel.basic_publish(
-                    exchange='',
-                    routing_key=msg_prop.reply_to,
-                    body=AMQPErrorResponse(
-                        error='INVALID_GRANT',
-                        error_description='The authorization credentials are not valid. Please '
-                                          'check your credentials'
-                    ).json().encode('utf-8'),
-                    properties=_msg_properties
-                )
-            else:
-                self.__logger.info(
-                    'The message did not contain a reply-to property. Therefore the sender will '
-                    'not be informed of the error'
-                )
-            return
-        # Since the message was valid run the message executor which will receive the message
-        # body only. The executor will only be called if a correlation id and the reply-to field
-        # were set
         if None in [msg_prop.correlation_id, msg_prop.reply_to]:
             self.__logger.warning(
                 'Missing information detected. The message will not be passed to the executor and '
