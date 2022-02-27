@@ -6,3 +6,7 @@ fastapi[all]==0.74.1
 py_eureka_client==0.10.4
 SQLAlchemy-Utils==0.38.2
 pika==1.2.0
+python-dotenv==0.19.2
+starlette==0.17.1
+ujson==4.3.0
+uvicorn==0.15.0
