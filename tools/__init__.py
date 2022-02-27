@@ -6,6 +6,7 @@ import time
 
 import passlib.pwd
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 
 from database import crud
@@ -124,13 +125,16 @@ def database_contains_active_administrator(session: Session):
     :param session:
     :return:
     """
-    _users = crud.get_all(Account, session)
     user_with_admin_present = False
-    for user in _users:
-        for scope in user.scopes:
-            if scope.scope_value == "admin" and user.is_active:
-                user_with_admin_present = True
+    try:
+        _users = crud.get_all(Account, session)
+        for user in _users:
+            for scope in user.scopes:
+                if scope.scope_value == "admin" and user.is_active:
+                    user_with_admin_present = True
+                    break
+            if user_with_admin_present:
                 break
-        if user_with_admin_present:
-            break
+    except ProgrammingError as e:
+        _logger.critical('During the check an error occurred: %s', e)
     return user_with_admin_present

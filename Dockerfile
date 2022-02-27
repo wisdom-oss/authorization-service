@@ -20,4 +20,4 @@ USER auth-service
 # Expose the port used by uvicorn
 EXPOSE 5000
 # Set the entrypoint to the service.py
-ENTRYPOINT python service.py
+ENTRYPOINT ["python", "service.py"]
