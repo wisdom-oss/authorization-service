@@ -13,8 +13,6 @@ COPY requirements.txt /opt/auth-service
 # Install the requirements
 RUN python -m pip install -r /opt/auth-service/requirements.txt
 RUN python -m pip install uvloop
-# Install hypercorn as http server
-RUN apt-get update && apt-get install wait-for-it
 # Set the working directory to the service folder
 WORKDIR /opt/auth-service
 # Change to the service user
@@ -22,4 +20,4 @@ USER auth-service
 # Expose the port used by uvicorn
 EXPOSE 5000
 # Set the entrypoint to the service.py
-ENTRYPOINT startup.sh
+ENTRYPOINT python service.py
