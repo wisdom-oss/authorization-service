@@ -138,6 +138,18 @@ def __enable_message_consuming()
 This will start the consuming of messages by this consumer
 
 
+#### \_\_callback\_consume\_started
+
+```python
+def __callback_consume_started(__consume_status: pika.frame.Method)
+```
+
+Callback for a successfully started consume session
+
+**Arguments**:
+
+- `__consume_status`: 
+
 #### \_\_callback\_connection\_opened
 
 ```python

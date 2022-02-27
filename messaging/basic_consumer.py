@@ -1,16 +1,15 @@
 """AMQP Basic Consumer"""
-import functools
-import json
 import logging
-import uuid
+import secrets
+import sys
 from typing import Optional
 
 import pika
 import pika.channel
+import pika.exceptions
 import pika.exchange_type
 import pika.frame
 import ujson
-
 from pydantic import AmqpDsn
 
 import security
@@ -48,7 +47,7 @@ class BasicAMQPConsumer:
         self.__amqp_url = amqp_url
         self.__amqp_exchange = amqp_exchange
         self.__amqp_queue = amqp_queue
-        self.__logger = logging.getLogger(__name__)
+        self.__logger = logging.getLogger('AMQP.BasicConsumer')
 
         # Initializing some attributes for later usage
         self.__connection: Optional[pika.SelectConnection] = None
@@ -59,7 +58,9 @@ class BasicAMQPConsumer:
         self.__closing = False
 
         self.should_reconnect = False
-        """Indicates if a supported consumer should try to reconnect to the message broker"""
+        self.graceful_shutdown = False
+        # Reduce the logging level of pika
+        logging.getLogger("pika").setLevel(logging.WARNING)
 
     def start(self):
         """Start the consumer and the consuming process"""
@@ -70,13 +71,13 @@ class BasicAMQPConsumer:
         """Close the existing message broker connection in a clean way"""
         if not self.__closing:
             self.__closing = True
-            self.__logger.debug("Closing the connection to the message broker")
+            self.__logger.info("Closing the connection to the message broker")
             if self.__consuming:
                 self.__stop_consuming()
-                self.__connection.ioloop.start()
-            self.__logger.debug("Closed the connection to the message broker")
+                # self.__connection.ioloop.start()
+            self.__logger.info("Closed the connection to the message broker")
         else:
-            self.__logger.debug("The connection is already being closed!")
+            self.__logger.info("The connection is already being closed!")
             self.__connection.ioloop.stop()
 
     def __connect(self) -> pika.SelectConnection:
@@ -85,14 +86,16 @@ class BasicAMQPConsumer:
         :return: Connection to the message broker
         :rtype: pika.SelectConnection
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Connecting to the message broker on %s',
-            self.__amqp_url
+            self.__amqp_url.host
         )
         connection_parameters = pika.URLParameters(self.__amqp_url)
         # Set a connection name to identify it in the rabbitmq dashboard
         connection_parameters.client_properties = {
-            'connection_name': 'water-usage-forecasts#' + str(uuid.uuid1())
+            'connection_name': secrets.token_urlsafe(nbytes=16),
+            'product': 'WISdoM OSS Authorization Service',
+            'platform': 'Python {}'.format(sys.version),
         }
         # Create the connection
         return pika.SelectConnection(
@@ -104,12 +107,12 @@ class BasicAMQPConsumer:
 
     def __open_channel(self):
         """Open a new channel to the message broker"""
-        self.__logger.debug('Trying to open a new channel to the message broker')
+        self.__logger.info('Trying to open a new channel to the message broker')
         self.__connection.channel(on_open_callback=self.__callback_channel_opened)
 
     def __close_channel(self):
         """Close the current channel"""
-        self.__logger.debug(
+        self.__logger.info(
             "Closing the current channel (channel ID: %s)",
             self.__channel.channel_number
         )
@@ -119,17 +122,21 @@ class BasicAMQPConsumer:
         """Close the connection to the message broker"""
         # Check the internal status of the connection
         if self.__connection.is_closing:
-            self.__logger.debug("The connection to the message broker is already closing")
+            self.__logger.info("The connection to the message broker is already closing")
         elif self.__connection.is_closed:
-            self.__logger.debug("The connection to the message broker was closed already")
+            self.__logger.info("The connection to the message broker was closed already")
         else:
-            self.__logger.debug("Closing the connection to the message broker")
+            self.__logger.info("Closing the connection to the message broker")
             self.__connection.close()
 
     def __stop_consuming(self):
         """This will stop the consuming of messages by this consumer"""
         if self.__channel:
-            self.__logger.debug('Canceling the consuming process')
+            self.__logger.info('Canceling the consuming process')
+            self.__channel.basic_cancel(
+                self.__consumer_tag,
+                callback=self.__callback_cancel_ok
+            )
             self.__channel.queue_delete(
                 queue=self.__amqp_queue,
                 if_unused=False,
@@ -150,7 +157,7 @@ class BasicAMQPConsumer:
 
         :return:
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Setting up the exchange "%s" on the channel #%i',
             self.__amqp_exchange, self.__channel.channel_number
         )
@@ -166,7 +173,7 @@ class BasicAMQPConsumer:
 
         :return:
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Trying to declare a queue on the exchange "%s"',
             self.__amqp_exchange
         )
@@ -180,7 +187,7 @@ class BasicAMQPConsumer:
 
         :return:
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Starting to consume messages from exchange %s',
             self.__amqp_exchange
         )
@@ -188,9 +195,18 @@ class BasicAMQPConsumer:
         self.__consuming = True
         self.__consumer_tag = self.__channel.basic_consume(
             queue=self.__amqp_queue,
-            on_message_callback=self.__callback_new_message
+            on_message_callback=self.__callback_new_message,
+            callback=self.__callback_consume_started
         )
-
+        
+    def __callback_consume_started(self, __consume_status: pika.frame.Method):
+        """Callback for a successfully started consume session
+        
+        :param __consume_status:
+        :return:
+        """
+        self.__logger.info('Successfully started consuming messages')
+        
     def __callback_connection_opened(self, __connection: pika.BaseConnection):
         """Callback for a successful connection attempt.
 
@@ -198,7 +214,7 @@ class BasicAMQPConsumer:
 
         :param __connection: Connection handle which was opened
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Opened connection "%s" to message broker.',
             __connection.params.client_properties.get('connection_name')
         )
@@ -249,7 +265,7 @@ class BasicAMQPConsumer:
 
         This will save the channel to the object and try to set up an exchange on this channel
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Opened channel (Channel ID: %s) to the message broker',
             __channel.channel_number
         )
@@ -271,13 +287,22 @@ class BasicAMQPConsumer:
         :param __reason: Reason for closing the channel
         :type __reason: Exception
         """
-        self.__logger.warning(
-            'The channel (Channel ID: %s) was closed for the following reason: %s',
-            __channel.channel_number,
-            __reason
-        )
-        # Close the connection to the message broker
-        self.__close_connection()
+        if isinstance(__reason, pika.exceptions.ConnectionClosedByBroker):
+            self.__logger.warning('The connection was closed by the message broker. Trying to '
+                                  'reconnect')
+            self.__reconnect()
+        elif isinstance(__reason, pika.exceptions.ChannelClosedByClient):
+            self.graceful_shutdown = True
+            self.__logger.info('The channel (Channel ID: %s) was closed successfully during a '
+                               'graceful shutdown', __channel.channel_number)
+        else:
+            self.__logger.warning(
+                'The channel (Channel ID: %s) was closed for the following reason: %s',
+                __channel.channel_number,
+                __reason
+            )
+            # Close the connection to the message broker
+            self.__close_connection()
 
     def __callback_cancel_ok(
             self,
@@ -288,7 +313,7 @@ class BasicAMQPConsumer:
         :param __frame:
         :return:
         """
-        self.__logger.debug("Channel was cancelled successfully")
+        self.__logger.info("Channel was cancelled successfully")
         self.__consuming = False
         self.__close_channel()
 
@@ -300,7 +325,7 @@ class BasicAMQPConsumer:
 
         :param __frame: Method frame
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Successfully declared the exchange %s on the channel #%i',
             self.__amqp_exchange, self.__channel.channel_number
         )
@@ -315,7 +340,7 @@ class BasicAMQPConsumer:
         :param __frame: Frame indicating the status of the executed command
         :return:
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Successfully declared queue "%s" on exchange "%s"',
             self.__amqp_queue, self.__amqp_exchange
         )
@@ -334,7 +359,7 @@ class BasicAMQPConsumer:
         :param __frame:
         :return:
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Successfully bound queue "%s" to the exchange "%s"',
             self.__amqp_queue, self.__amqp_exchange
         )
@@ -352,11 +377,10 @@ class BasicAMQPConsumer:
         :param __frame:
         :return:
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Successfully deleted queue "%s" from the exchange "%s"',
             self.__amqp_queue, self.__amqp_exchange
         )
-        self.__channel.basic_cancel(self.__consumer_tag, self.__callback_cancel_ok)
 
     def __callback_basic_qos_ok(
             self,
@@ -367,7 +391,7 @@ class BasicAMQPConsumer:
         :param __frame:
         :return:
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Successfully set the QOS prefetch count to %d',
             self.__prefetch_count
         )
@@ -403,7 +427,7 @@ class BasicAMQPConsumer:
         :param msg_prop: Message properties
         :param content: Message content
         """
-        self.__logger.debug(
+        self.__logger.info(
             'Received new message (message id: #%s) via exchange "%s"',
             delivery.delivery_tag, delivery.exchange
         )
@@ -465,7 +489,7 @@ class BasicAMQPConsumer:
                     properties=_msg_properties
                 )
             else:
-                self.__logger.debug(
+                self.__logger.info(
                     'The message did not contain a reply-to property. Therefore the sender will '
                     'not be informed of the error'
                 )
@@ -480,7 +504,7 @@ class BasicAMQPConsumer:
             )
             return
         _exc_result = executor.execute({"payload": ujson.loads(content)})
-        self.__logger.debug('Executed action successfully. Now returning the message')
+        self.__logger.info('Executed action successfully. Now returning the message')
         # Return the message to the message broker
         channel.basic_publish(
             exchange='',

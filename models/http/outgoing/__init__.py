@@ -2,7 +2,7 @@
 """Datamodels for outgoing data"""
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 import models.shared
 from models.http import incoming
@@ -198,3 +198,73 @@ class TokenSet(BaseModel):
         """Allow pydantic to use the aliases to read properties"""
 
 
+class ClientCredential(BaseModel):
+    """
+    Data model for a newly created client credential
+
+    Client credentials are only usable via AMQP and have no expiration
+    """
+    
+    credential_id: int = Field(
+        default=...,
+        alias='credentialID'
+    )
+    
+    credential_title: str = Field(
+        default=...,
+        alias='credentialTitle'
+    )
+    
+    class Config:
+        """Configuration for this pydantic model"""
+
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""
+
+
+class NewClientCredential(BaseModel):
+    """
+    Data model for a newly created client credential
+    
+    Client credentials are only usable via AMQP and have no expiration
+    """
+    
+    credential_id: int = Field(
+        default=...,
+        alias='credentialID'
+    )
+
+    credential_title: str = Field(
+        default=...,
+        alias='credentialTitle'
+    )
+    
+    client_id: str = Field(
+        default=...,
+        alias='clientID',
+        title='Client ID'
+    )
+    
+    client_secret: str = Field(
+        default=...,
+        alias='clientSecret',
+        title='Client Secret'
+    )
+    
+    class Config:
+        """Configuration for this pydantic model"""
+
+        orm_mode = True
+        """Allow the reading of properties via a orm model"""
+
+        allow_population_by_field_name = True
+        """Allow pydantic to use the field names to read the properties"""
+
+        allow_population_by_alias = True
+        """Allow pydantic to use the aliases to read properties"""

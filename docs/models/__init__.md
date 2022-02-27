@@ -26,6 +26,11 @@ class Config()
 The basic configuration for every model
 
 
+#### arbitrary\_types\_allowed
+
+Allow arbitrary types in typing
+
+
 #### orm\_mode
 
 Allow the model to read information of ORMs
@@ -52,7 +57,7 @@ Service Settings
 URI pointing to a MariaDB or MySQL Database instance containing the authorization tables
 
 
-#### service\_registry\_url
+#### service\_registry\_host
 
 URL pointing to a service registry installation (currently supported: Netflix Eureka)
 

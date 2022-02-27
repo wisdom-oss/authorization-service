@@ -20,15 +20,13 @@ terminated in an unnatural way
 #### \_\_init\_\_
 
 ```python
-def __init__(amqp_url: AmqpDsn, amqp_exchange: str, amqp_queue: str = "authorization-service#" + str(uuid.uuid1()), amqp_reconnection_delay: float = 5.0, amqp_reconnection_tries: int = 3)
+def __init__(amqp_queue: str = "authorization-service#" + secrets.token_hex(nbytes=4), amqp_reconnection_delay: float = 5.0, amqp_reconnection_tries: int = 3)
 ```
 
 Create a new ReconnectingAMQPConsumer
 
 **Arguments**:
 
-- `amqp_url`: URL pointing to the message broker
-- `amqp_exchange`: Name of the exchange the consumer should attach itself to
 - `amqp_queue`: Name of the queue which should be bound to the exchange,
 defaults to &quot;water-usage-forecast-service#&quot; + UUID4
 - `amqp_reconnection_delay`: Time which should be waited until a reconnection is tried

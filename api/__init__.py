@@ -1,13 +1,13 @@
 """Module containing the routes and actions run when requesting a specific route"""
 import logging
-import time
+from threading import Thread
 from typing import Optional, Union
 
+import passlib.pwd
 import sqlalchemy.exc
-from fastapi import Body, Depends, FastAPI as RESTApplication, Form, Security
-from fastapi import Request
+from fastapi import Body, Depends, FastAPI as RESTApplication, Form, Security, Request
 from fastapi.responses import UJSONResponse
-from passlib.hash import pbkdf2_sha512 as pwd_hasher
+from passlib.hash import pbkdf2_sha512 as pwd_hasher, argon2 as secret_hasher
 from py_eureka_client.eureka_client import EurekaClient
 from pydantic import SecretStr
 from sqlalchemy.orm import Session
@@ -17,21 +17,26 @@ from starlette.responses import FileResponse, Response
 import database
 import models.shared
 import security
+import tools
 from database import Scope, tables
 from exceptions import AuthorizationException, ObjectNotFoundException
-from models import ServiceSettings
+from messaging.reconnecting_consumer import ReconnectingAMQPConsumer
 from models.http import incoming, outgoing
+from settings import ServiceSettings, ServiceRegistrySettings
 from . import dependencies, utilities
 
 auth_service_rest = RESTApplication()
 """Main API application for this service"""
 
 # Create a logger for the API and its routes
-__logger = logging.getLogger('API')
+__logger = logging.getLogger('HTTP')
 # Get the service settings
 __settings: Optional[ServiceSettings] = None
 # Create a service registry client
 __service_registry_client: Optional[EurekaClient] = None
+# An AMQP Thread and server for allowing amqp based communication with the authorization service
+_amqp_server: Optional[ReconnectingAMQPConsumer] = None
+_amqp_thread: Optional[Thread] = None
 
 
 # == Event handlers == #
@@ -41,33 +46,45 @@ def api_startup():
 
     The code will be executed before any HTTP incoming will be accepted
     """
-    # Configure Logging to force using the info level
-    logging.basicConfig(
-        level=logging.INFO,
-        force=True
-    )
-    # Get a logger for this event
-    __log = logging.getLogger('API.startup')
     # Enable the global usage of the service settings and the service registry client
-    global __settings, __service_registry_client  # pylint: disable=invalid-name, global-statement
+    # pylint: disable=invalid-name, global-statement
+    global __settings, __service_registry_client, _heartbeat_event, _heartbeat_thread, \
+        _amqp_thread, _amqp_server
     # Read the settings
-    __settings = ServiceSettings()
-    # Create a new service registry client
-    __service_registry_client = EurekaClient(
-        eureka_server=__settings.service_registry_url,
-        app_name='authorization-service',
-        instance_port=5000,
-        should_register=True,
-        should_discover=False,
-        renewal_interval_in_secs=5,
-        duration_in_secs=10
+    __service_settings = ServiceSettings()
+    _service_registry_settings = ServiceRegistrySettings()
+    logging.basicConfig(
+        format='%(levelname)-8s | %(asctime)s | %(name)-25s | %(message)s',
+        level=tools.resolve_log_level(__service_settings.log_level)
     )
+    __logger = logging.getLogger('HTTP.Startup')
+    __logger.info("Starting the API")
+    # Create a new service registry client
+    __logger.info('Creating a new service registry client')
+    _eureka_client_options = {
+        'eureka_server':            f'http://{_service_registry_settings.host}:{_service_registry_settings.port}',
+        'app_name':                 __service_settings.name,
+        'instance_port':            __service_settings.http_port,
+        'should_register':          True,
+        'should_discover':          False,
+        'renewal_interval_in_secs': 1,
+        'duration_in_secs':         5
+    }
+    __logger.debug('Client Properties: %s', _eureka_client_options)
+    __service_registry_client = EurekaClient(**_eureka_client_options)
     # Start the registry client
     __service_registry_client.start()
     # Set the status of this service to starting to disallow routing to them
     __service_registry_client.status_update('STARTING')
     # Initialize the database models and connections and check for any errors in the database tables
     database.initialise_databases()
+    # Create a new AMQP Client
+    _amqp_server = ReconnectingAMQPConsumer(amqp_reconnection_tries=0)
+    _amqp_thread = Thread(
+        target=_amqp_server.start,
+        daemon=False
+    )
+    _amqp_thread.start()
     # Inform the service registry of the new server status
     __service_registry_client.status_update('UP')
 
@@ -77,11 +94,16 @@ def api_shutdown():
     # pylint: disable=global-variable-not-assigned
     """Event handler for the shutdown process of the application"""
     # Get a logger for this event
-    __log = logging.getLogger('API.shutdown')
+    __log = logging.getLogger('HTTP.Shutdown')
     # Enable the global usage of the registry client
-    global __service_registry_client  # pylint: disable=invalid-name
-    # Stop the client and deregister the service
+    # pylint: disable=invalid-name
+    global __service_registry_client, _amqp_thread, _amqp_server
+    __log.info('Stopping the AMQP Server and its executor thread2')
+    _amqp_server.stop()
+    _amqp_thread.join()
+    __log.info('Stopping the Registry Client')
     __service_registry_client.stop()
+    __log.info('Shutdown Sequence completed')
 
 
 # == Exception handlers ==
@@ -103,9 +125,9 @@ async def handle_authorization_exception(
     :rtype: UJSONResponse
     """
     _content = {
-            "error":             exc.short_error,
-            "error_description": exc.error_description
-        }
+        "error":             exc.short_error,
+        "error_description": exc.error_description
+    }
     if exc.error_description is None:
         _content.pop("error_description")
     return UJSONResponse(
@@ -152,7 +174,7 @@ async def handle_integrity_error(
     """
     return UJSONResponse(
         content={
-            "error": "DUPLICATE_ENTRY",
+            "error":             "DUPLICATE_ENTRY",
             "error_description": "The resource you tried to create already exists"
         },
         status_code=status.HTTP_409_CONFLICT
@@ -204,7 +226,7 @@ async def oauth_login(
             )
         # Since the user passed all tests now the requested scopes will be checked against those
         # assigned to the account
-
+        
         if form.scopes.strip() != "":
             # Check if the user has the privileges to use the requested scopes
             # Split the scope string to get the single scope values
@@ -835,6 +857,84 @@ async def roles_add(
     :return:
     """
     return database.crud.add_role(new_role, db_session)
+
+
+@auth_service_rest.delete(
+    path='/amqp/credentials/{credential_id}',
+    response_model=outgoing.ClientCredential,
+)
+async def delete_client_credential(
+        credential_id: int,
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Delete a existing client credential
+    
+    :param credential_id:
+    :param _active_user:
+    :param db_session:
+    :return:
+    """
+    _client_credential = database.crud.get_client_credential(credential_id, db_session)
+    if isinstance(_client_credential, tables.ClientCredential):
+        db_session.delete(_client_credential)
+        db_session.commit()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    # Since no user was found return a 404 via the object not found exception
+    raise ObjectNotFoundException
+
+
+@auth_service_rest.get(
+    path='/amqp/credentials',
+    response_model=list[outgoing.ClientCredential]
+)
+async def get_client_credentials(
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Get a listing of all available Client credentials
+    
+    :return: A List of client credentials
+    """
+    return database.crud.get_all(tables.ClientCredential, db_session)
+
+
+@auth_service_rest.put(
+    path='/amqp/credentials',
+    response_model=outgoing.NewClientCredential,
+)
+async def create_client_credential(
+        client_id: str = Body(...),
+        credential_title: str = Body(...),
+        client_scopes: str = Body(...),
+        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
+        db_session: Session = Depends(database.session)
+):
+    """Create a new AMQP client credential
+    
+    :param credential_title: The human-identifiable credential title
+    :param client_scopes: The scopes this credential shall have
+    :param client_id: The Client for which the credential shall be created
+    :param _active_user: The currently active user
+    :param db_session: The database session used to insert the credential
+    :return: A set of client credentials which are only visible once
+    """
+    # Generate the client secret
+    _client_secret = SecretStr(passlib.pwd.genword(length=64, charset='ascii_62'))
+    # Create a new database entry
+    _credential = tables.ClientCredential(
+        credential_title=credential_title,
+        client_id=client_id,
+        client_secret=secret_hasher.hash(_client_secret.get_secret_value()),
+        client_scopes=client_scopes
+    )
+    credential = database.crud.add_to_database(_credential, db_session)
+    return outgoing.NewClientCredential(
+        credentialID=credential.credential_id,
+        credentialTitle=credential.credential_title,
+        clientID=credential.client_id,
+        clientSecret=_client_secret.get_secret_value()
+    )
 
 
 @auth_service_rest.get(

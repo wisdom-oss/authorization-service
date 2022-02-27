@@ -55,6 +55,17 @@ class AMQPUpdateScopeRequest(models.shared.ScopeUpdate)
 The action which shall be executed
 
 
+## AMQPDeleteScopeRequest Objects
+
+```python
+class AMQPDeleteScopeRequest(BaseModel)
+```
+
+#### action
+
+The action which shall be executed
+
+
 ## IncomingAMQPRequest Objects
 
 ```python
