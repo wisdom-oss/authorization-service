@@ -131,11 +131,19 @@
     },
     {
       "items": [
+        "settings/__init__"
+      ],
+      "label": "settings",
+      "type": "category"
+    },
+    {
+      "items": [
         "tools/__init__"
       ],
       "label": "tools",
       "type": "category"
-    }
+    },
+    "service"
   ],
   "label": "Reference",
   "type": "category"

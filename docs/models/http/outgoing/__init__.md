@@ -223,3 +223,73 @@ Allow pydantic to use the field names to read the properties
 Allow pydantic to use the aliases to read properties
 
 
+## ClientCredential Objects
+
+```python
+class ClientCredential(BaseModel)
+```
+
+Data model for a newly created client credential
+
+Client credentials are only usable via AMQP and have no expiration
+
+
+## Config Objects
+
+```python
+class Config()
+```
+
+Configuration for this pydantic model
+
+
+#### orm\_mode
+
+Allow the reading of properties via a orm model
+
+
+#### allow\_population\_by\_field\_name
+
+Allow pydantic to use the field names to read the properties
+
+
+#### allow\_population\_by\_alias
+
+Allow pydantic to use the aliases to read properties
+
+
+## NewClientCredential Objects
+
+```python
+class NewClientCredential(BaseModel)
+```
+
+Data model for a newly created client credential
+
+Client credentials are only usable via AMQP and have no expiration
+
+
+## Config Objects
+
+```python
+class Config()
+```
+
+Configuration for this pydantic model
+
+
+#### orm\_mode
+
+Allow the reading of properties via a orm model
+
+
+#### allow\_population\_by\_field\_name
+
+Allow pydantic to use the field names to read the properties
+
+
+#### allow\_population\_by\_alias
+
+Allow pydantic to use the aliases to read properties
+
+
