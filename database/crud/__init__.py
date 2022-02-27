@@ -335,23 +335,3 @@ def clear_mapping_entries(
     :return:
     """
     db_session.query(table).filter(table.role_id == main_key).delete()
-
-
-def get_client_credential_by_client_id(client_id: str, session: Session) -> tables.ClientCredential:
-    """Get a client credential from the database
-
-    :param client_id: The client id which shall be queried for
-    :param session: The database session used to access the database
-    :return:
-    """
-    return (session
-            .query(tables.ClientCredential)
-            .filter(tables.ClientCredential.client_id == client_id)
-            .first())
-
-
-def get_client_credential(credential_id, session):
-    return (session
-            .query(tables.ClientCredential)
-            .filter(tables.ClientCredential.credential_id == credential_id)
-            .first())

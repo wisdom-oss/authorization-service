@@ -133,28 +133,6 @@ class Account(TableDeclarationBase):
     """Roles assigned to the account"""
 
 
-class ClientCredential(TableDeclarationBase):
-    """ORM for a client credential for amqp applications"""
-
-    __tablename__ = 'client_credentials'
-    """The name of the database table"""
-
-    credential_id = Column(Integer, primary_key=True, autoincrement=True)
-    """The internal id of the credential"""
-
-    credential_title = Column(String(length=255), nullable=False)
-    """The title for this client credential"""
-
-    client_id = Column(String(length=255), nullable=False)
-    """The identification of the client"""
-
-    client_secret = Column(String(length=255), nullable=False)
-    """The hashed client secret"""
-
-    client_scopes = Column(Text, nullable=False, default="")
-    """The scopes the client is allowed to use"""
-
-
 class RoleToScope(TableDeclarationBase):
     """ORM for linking roles to the scopes they inherit"""
 

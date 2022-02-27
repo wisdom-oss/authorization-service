@@ -3,16 +3,15 @@ import logging
 from threading import Thread
 from typing import Optional, Union
 
-import passlib.pwd
 import sqlalchemy.exc
 from fastapi import Body, Depends, FastAPI as RESTApplication, Form, Security, Request
 from fastapi.responses import UJSONResponse
-from passlib.hash import pbkdf2_sha512 as pwd_hasher, argon2 as secret_hasher
+from passlib.hash import pbkdf2_sha512 as pwd_hasher
 from py_eureka_client.eureka_client import EurekaClient
 from pydantic import SecretStr
 from sqlalchemy.orm import Session
 from starlette import status
-from starlette.responses import FileResponse, Response
+from starlette.responses import Response
 
 import database
 import models.shared
@@ -859,84 +858,6 @@ async def roles_add(
     return database.crud.add_role(new_role, db_session)
 
 
-@auth_service_rest.delete(
-    path='/amqp/credentials/{credential_id}',
-    response_model=outgoing.ClientCredential,
-)
-async def delete_client_credential(
-        credential_id: int,
-        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
-        db_session: Session = Depends(database.session)
-):
-    """Delete a existing client credential
-    
-    :param credential_id:
-    :param _active_user:
-    :param db_session:
-    :return:
-    """
-    _client_credential = database.crud.get_client_credential(credential_id, db_session)
-    if isinstance(_client_credential, tables.ClientCredential):
-        db_session.delete(_client_credential)
-        db_session.commit()
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
-    # Since no user was found return a 404 via the object not found exception
-    raise ObjectNotFoundException
-
-
-@auth_service_rest.get(
-    path='/amqp/credentials',
-    response_model=list[outgoing.ClientCredential]
-)
-async def get_client_credentials(
-        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
-        db_session: Session = Depends(database.session)
-):
-    """Get a listing of all available Client credentials
-    
-    :return: A List of client credentials
-    """
-    return database.crud.get_all(tables.ClientCredential, db_session)
-
-
-@auth_service_rest.put(
-    path='/amqp/credentials',
-    response_model=outgoing.NewClientCredential,
-)
-async def create_client_credential(
-        client_id: str = Body(...),
-        credential_title: str = Body(...),
-        client_scopes: str = Body(...),
-        _active_user: tables.Account = Security(dependencies.get_current_user, scopes=["admin"]),
-        db_session: Session = Depends(database.session)
-):
-    """Create a new AMQP client credential
-    
-    :param credential_title: The human-identifiable credential title
-    :param client_scopes: The scopes this credential shall have
-    :param client_id: The Client for which the credential shall be created
-    :param _active_user: The currently active user
-    :param db_session: The database session used to insert the credential
-    :return: A set of client credentials which are only visible once
-    """
-    # Generate the client secret
-    _client_secret = SecretStr(passlib.pwd.genword(length=64, charset='ascii_62'))
-    # Create a new database entry
-    _credential = tables.ClientCredential(
-        credential_title=credential_title,
-        client_id=client_id,
-        client_secret=secret_hasher.hash(_client_secret.get_secret_value()),
-        client_scopes=client_scopes
-    )
-    credential = database.crud.add_to_database(_credential, db_session)
-    return outgoing.NewClientCredential(
-        credentialID=credential.credential_id,
-        credentialTitle=credential.credential_title,
-        clientID=credential.client_id,
-        clientSecret=_client_secret.get_secret_value()
-    )
-
-
 @auth_service_rest.get(
     path='/',
 )
@@ -947,14 +868,3 @@ async def status_route(_request: Request):
     :return: A HTTP 204 Response indicating that the service is alive
     """
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@auth_service_rest.options(
-    path='/',
-)
-async def options_openapi():
-    """Get the openapi file"""
-    return FileResponse(
-        path='./openapi.yaml',
-        media_type='text/x-yaml'
-    )
