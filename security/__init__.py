@@ -69,7 +69,21 @@ def run_token_introspection(
     if scope is not None and len(scope.split()) > 0:
         # Since scopes were supplied to the function we now will check if any scope supplied to
         # the function is not in the scopes of the token
-        if any(_scope not in _scopes for _scope in scope.split()):
+        # Check if the token has administrative access
+        if "admin" in _scopes:
+            return TokenIntrospectionResult(
+                active=True,
+                # Use the supplied scopes if any were supplied
+                scopes=scope if scope is not None and len(scope.split()) > 0 else ' '.join(_scopes),
+                username=_token.user[0].username,
+                # Set the token type according to the type of the token
+                token_type='access_token' if isinstance(_token,
+                                                        tables.AccessToken) else 'refresh_token',
+                exp=_token.expires,
+                # Set the creation time if an access token was introspected
+                iat=_token.created if isinstance(_token, tables.AccessToken) else None
+            )
+        elif any(_scope not in _scopes for _scope in scope.split()):
             return TokenIntrospectionResult(active=False)
     # Return the result of the introspection
     return TokenIntrospectionResult(
@@ -80,6 +94,6 @@ def run_token_introspection(
         # Set the token type according to the type of the token
         token_type='access_token' if isinstance(_token, tables.AccessToken) else 'refresh_token',
         exp=_token.expires,
-        # Set the creation time if a access token was introspected
+        # Set the creation time if an access token was introspected
         iat=_token.created if isinstance(_token, tables.AccessToken) else None
     )
