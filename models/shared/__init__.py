@@ -5,6 +5,7 @@ from typing import Optional
 from pydantic import Field
 
 from models import BaseModel
+from models.enums import TokenIntrospectionFailure
 
 
 class TokenIntrospectionResult(BaseModel):
@@ -52,6 +53,11 @@ class TokenIntrospectionResult(BaseModel):
         default=None,
         alias='iat',
         description='UNIX timestamp indicating the creation time of the token'
+    )
+    
+    reason: Optional[TokenIntrospectionFailure] = Field(
+        default=None,
+        alias='reason'
     )
 
 

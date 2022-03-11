@@ -14,7 +14,8 @@ __logger = logging.getLogger(__name__)
 
 ResponseTypes = typing.TypeVar(
     'ResponseTypes',
-    AMQPErrorResponse, TokenIntrospectionResult, AMQPScopeResponse, BasicAMQPResponse
+    AMQPErrorResponse, TokenIntrospectionResult, AMQPScopeResponse, BasicAMQPResponse,
+    AMQPCheckScopeRequest
 )
 
 
@@ -39,7 +40,10 @@ def execute(message: dict) -> ResponseTypes:
         )
     # Now check the type of payload and execute the payload specific code
     if isinstance(request.payload, AMQPValidateTokenRequest):
-        return security.run_token_introspection(request.payload.token, request.payload.scopes)
+        response = security.run_token_introspection(request.payload.token,
+                                                    request.payload.scopes, amqp=True)
+        
+        return response
     elif isinstance(request.payload, AMQPCreateScopeRequest):
         _scope = database.tables.Scope(
             scope_name=request.payload.scope_name,
@@ -75,6 +79,15 @@ def execute(message: dict) -> ResponseTypes:
         _session.commit()
         # Return that this action was a success
         return BasicAMQPResponse()
+    elif isinstance(request.payload, AMQPCheckScopeRequest):
+        # Create a new db instance
+        _session = next(database.session())
+        # Check if a scope with this name exists
+        _scope = database.crud.get_scope_by_value(request.payload.scope_value, _session)
+        if _scope is None:
+            return BasicAMQPResponse(status='false')
+        else:
+            return BasicAMQPResponse(status='true')
     else:
         return AMQPErrorResponse(
             error='NOT_IMPLEMENTED',
