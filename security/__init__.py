@@ -7,41 +7,22 @@ from passlib.hash import argon2
 
 import database
 from database import tables
+from models.enums import TokenIntrospectionFailure
 from models.shared import TokenIntrospectionResult
-
-
-def client_credentials_valid(
-        client_id: str,
-        client_secret: str,
-        session: Session = next(database.session())
-) -> bool:
-    """Check if the supplied client credentials match and are valid
-
-    :param session: The database session used to retrieve the database content
-    :param client_id: The client id
-    :param client_secret: The client secret
-    :return: True if the client id/secret combination match those on record
-    """
-    # Try to get a database entry for the client_id
-    _client_credentials = database.crud.get_client_credential_by_client_id(client_id, session)
-    # Check if the query returned anything
-    if _client_credentials is None:
-        return False
-    # Use the hashing method to validate if the client secret matches the one on the server and
-    # return the result since a client credential allows the full access to the amqp interface
-    return argon2.verify(client_secret, _client_credentials.client_secret)
 
 
 def run_token_introspection(
         token: str,
         scope: str,
-        session: Session = next(database.session())
+        session: Session = next(database.session()),
+        amqp: bool = False
 ) -> TokenIntrospectionResult:
     """Execute a token introspection and return the result of the introspection
 
     :param token: The token which shall be introspected
     :param scope: The scopes against which the token shall be tested
     :param session: The database session which is used to access the data
+    :param amqp: Use this to set a reason if the introspection failed
     :return: A TokenIntrospectionResult
     :rtype: TokenIntrospectionResult
     """
@@ -51,18 +32,29 @@ def run_token_introspection(
     # Check if any of the values is None
     if all(_token is None for _token in [_access_token, _refresh_token]):
         # Return that the token is not active
-        return TokenIntrospectionResult(active=False)
+        return TokenIntrospectionResult(
+            active=False,
+            reason=TokenIntrospectionFailure.TOKEN_ERROR if amqp else None
+        )
     # Assign the token which was found to the working token object
     _token = next((_t for _t in [_access_token, _refresh_token] if _t is not None), None)
     # Check if the assignment is not None
     if _token is None:
-        return TokenIntrospectionResult(active=False)
+        return TokenIntrospectionResult(
+            active=False,
+            reason=TokenIntrospectionFailure.TOKEN_ERROR if amqp else None
+        )
     # Check if the token has already expired
     if time.time() >= _token.expires:
-        return TokenIntrospectionResult(active=False)
-    # Check if the user assigned to the token is not disabled
+        return TokenIntrospectionResult(
+            active=False,
+            reason=TokenIntrospectionFailure.TOKEN_ERROR if amqp else None
+        )    # Check if the user assigned to the token is not disabled
     if not _token.user[0].is_active:
-        return TokenIntrospectionResult(active=False)
+        return TokenIntrospectionResult(
+            active=False,
+            reason=TokenIntrospectionFailure.TOKEN_ERROR if amqp else None
+        )
     # Create a list of the scopes assigned to the token
     _scopes = [_scope.scope_value for _scope in _token.scopes]
     # Check if scopes were supplied to the function
@@ -84,8 +76,11 @@ def run_token_introspection(
                 iat=_token.created if isinstance(_token, tables.AccessToken) else None
             )
         elif any(_scope not in _scopes for _scope in scope.split()):
-            return TokenIntrospectionResult(active=False)
-    # Return the result of the introspection
+            return TokenIntrospectionResult(
+                active=False,
+                reason=TokenIntrospectionFailure.INSUFFICIENT_SCOPE if amqp else None
+            )
+        # Return the result of the introspection
     return TokenIntrospectionResult(
         active=True,
         # Use the supplied scopes if any were supplied

@@ -64,6 +64,17 @@ class AMQPDeleteScopeRequest(BaseModel):
         title='Internal Scope ID',
         description='The ID of the scope that shall be modified'
     )
+    
+    
+class AMQPCheckScopeRequest(BaseModel):
+    
+    action: Literal[AMQPActions.CHECK_SCOPE]
+    
+    scope_value: str = Field(
+        default=...,
+        alias='scope',
+        title='Scope Value'
+    )
 
 
 class IncomingAMQPRequest(BaseModel):
@@ -73,7 +84,7 @@ class IncomingAMQPRequest(BaseModel):
 
     payload: Union[
         AMQPValidateTokenRequest, AMQPCreateScopeRequest, AMQPDeleteScopeRequest,
-        AMQPUpdateScopeRequest
+        AMQPUpdateScopeRequest, AMQPCheckScopeRequest
     ] = Field(
         default=..., discriminator='action'
     )

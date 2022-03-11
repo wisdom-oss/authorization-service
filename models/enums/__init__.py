@@ -16,3 +16,13 @@ class AMQPActions(str, Enum):
 
     DELETE_SCOPE = 'delete_scope'
     """Delete a scope present in the system"""
+    
+    CHECK_SCOPE = 'check_scope'
+    """Check if a scope is present in the system"""
+    
+
+class TokenIntrospectionFailure(str, Enum):
+    """Reasons for a failure of a token introspection"""
+    
+    INSUFFICIENT_SCOPE = 'insufficient_scope'
+    TOKEN_ERROR = 'token_error'
