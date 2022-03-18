@@ -50,7 +50,7 @@ def execute(message: dict) -> ResponseTypes:
             scope_description=request.payload.scope_description,
             scope_value=request.payload.scope_value
         )
-        scope = database.crud.add_scope(_scope, next(database.session()))
+        scope = database.crud.add_to_database(_scope, next(database.session()))
         return AMQPScopeResponse.parse_obj(scope)
     elif isinstance(request.payload, AMQPUpdateScopeRequest):
         # Create a db instance
