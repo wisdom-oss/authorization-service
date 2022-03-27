@@ -27,12 +27,6 @@ if __name__ == '__main__':
     )
     # Log a startup message
     logging.info(f'Starting the {_service_settings.name} service')
-    logging.debug('Reading the settings for the AMQP connection')
-    try:
-        _amqp_settings = AMQPSettings()
-    except ValidationError as error:
-        logging.error('The settings for the AMQP connection could not be read')
-        sys.exit(1)
     logging.debug('Reading the settings for the Service Registry connection')
     try:
         _registry_settings = ServiceRegistrySettings()
@@ -45,11 +39,9 @@ if __name__ == '__main__':
     except ValidationError as error:
         logging.error('The settings for the database connection could not be read')
         sys.exit(3)
-    # Get the current event loop
-    _loop = asyncio.get_event_loop()
     # Check if the service registry is reachable
     logging.info('Checking the communication to the service registry')
-    _registry_available = _loop.run_until_complete(
+    _registry_available = asyncio.run(
         tools.is_host_available(
             host=_registry_settings.host,
             port=_registry_settings.port
@@ -63,25 +55,9 @@ if __name__ == '__main__':
         sys.exit(4)
     else:
         logging.info('SUCCESS: The service registry appears to be running')
-    # Check if the message broker is reachable
-    logging.info('Checking the communication to the message broker')
-    _message_broker_available = _loop.run_until_complete(
-        tools.is_host_available(
-            host=_amqp_settings.dsn.host,
-            port=5672 if _amqp_settings.dsn.port is None else int(_amqp_settings.dsn.port)
-        )
-    )
-    if not _message_broker_available:
-        logging.critical(
-            'The message broker is not reachable. Since this is a security issue the service will '
-            'not start'
-        )
-        sys.exit(5)
-    else:
-        logging.info('SUCCESS: The message registry appears to be running')
     # Check if the database is reachable
     logging.info('Checking the communication to the database')
-    _database_reachable = _loop.run_until_complete(
+    _database_reachable = asyncio.run(
         tools.is_host_available(
             host=_database_settings.dsn.host,
             port=3306 if _database_settings.dsn.port is None else int(_database_settings.dsn.port)

@@ -19,7 +19,6 @@ import security
 import tools
 from database import Scope, tables
 from exceptions import AuthorizationException, ObjectNotFoundException
-from messaging.reconnecting_consumer import ReconnectingAMQPConsumer
 from models.http import incoming, outgoing
 from settings import ServiceSettings, ServiceRegistrySettings
 from . import dependencies, utilities
@@ -33,9 +32,6 @@ __logger = logging.getLogger('HTTP')
 __settings: Optional[ServiceSettings] = None
 # Create a service registry client
 __service_registry_client: Optional[EurekaClient] = None
-# An AMQP Thread and server for allowing amqp based communication with the authorization service
-_amqp_server: Optional[ReconnectingAMQPConsumer] = None
-_amqp_thread: Optional[Thread] = None
 
 
 # == Event handlers == #
@@ -47,8 +43,7 @@ def api_startup():
     """
     # Enable the global usage of the service settings and the service registry client
     # pylint: disable=invalid-name, global-statement
-    global __settings, __service_registry_client, _heartbeat_event, _heartbeat_thread, \
-        _amqp_thread, _amqp_server
+    global __settings, __service_registry_client, _heartbeat_event, _heartbeat_thread
     # Read the settings
     __service_settings = ServiceSettings()
     _service_registry_settings = ServiceRegistrySettings()
@@ -77,13 +72,6 @@ def api_startup():
     __service_registry_client.status_update('STARTING')
     # Initialize the database models and connections and check for any errors in the database tables
     database.initialise_databases()
-    # Create a new AMQP Client
-    _amqp_server = ReconnectingAMQPConsumer(amqp_reconnection_tries=0)
-    _amqp_thread = Thread(
-        target=_amqp_server.start,
-        daemon=False
-    )
-    _amqp_thread.start()
     # Inform the service registry of the new server status
     __service_registry_client.status_update('UP')
 
@@ -96,10 +84,7 @@ def api_shutdown():
     __log = logging.getLogger('HTTP.Shutdown')
     # Enable the global usage of the registry client
     # pylint: disable=invalid-name
-    global __service_registry_client, _amqp_thread, _amqp_server
-    __log.info('Stopping the AMQP Server and its executor thread2')
-    _amqp_server.stop()
-    _amqp_thread.join()
+    global __service_registry_client
     __log.info('Stopping the Registry Client')
     __service_registry_client.stop()
     __log.info('Shutdown Sequence completed')

@@ -87,41 +87,6 @@ class ServiceRegistrySettings(BaseSettings):
         """The location of the environment file from which these values may be loaded"""
 
 
-class AMQPSettings(BaseSettings):
-    """Settings related to AMQP-based communication"""
-    
-    dsn: AmqpDsn = Field(
-        default=...,
-        title='AMQP Address',
-        description='The amqp address containing the login information into a message broker',
-        env='AMQP_DSN'
-    )
-    """
-    AMQP Address
-
-    The address pointing to a AMQP-enabled message broker which shall be used for internal
-    communication between the services
-    """
-    
-    amqp_exchange: str = Field(
-        default='authorization-service',
-        title='Name of the exchange',
-        description='Name of the exchange which is bound by the authorization service',
-        env='AMQP_EXCHANGE'
-    )
-    """
-    AMQP Exchange
-
-    The exchange which is bound by the authorization service, defaults to `authorization-service`
-    """
-
-    class Config:
-        """Configuration of the AMQP related settings"""
-    
-        env_file = '.amqp.env'
-        """The file from which the settings may be read"""
-
-
 class DatabaseSettings(BaseSettings):
     """Settings related to the connections to the geo-data server"""
     
