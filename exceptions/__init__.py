@@ -1,33 +1,33 @@
 """Package containing some custom Exceptions for handling certain events"""
-from typing import Any, Optional
+import http
+from typing import Optional
+from http import HTTPStatus
 
-from starlette import status
 
-
-class AuthorizationException(Exception):
+class APIException(Exception):
     """
     An error occurred during authenticating a user which led to a non 2XX response
     """
 
     def __init__(
-            self,
-            short_error: str,
-            error_description: Optional[str] = None,
-            http_status_code: status = status.HTTP_400_BAD_REQUEST,
-            optional_data: Optional[Any] = ""
+        self,
+        error_code: str,
+        error_name: Optional[str] = None,
+        error_description: Optional[str] = None,
+        status_code: http.HTTPStatus = HTTPStatus.BAD_REQUEST,
     ):
         """Create a new Authorization Exception
 
         :param short_error: Short error description (e.g. USER_NOT_FOUND)
         :param error_description: Textual description of the error (may point to the documentation)
-        :param http_status_code: HTTP Status code which shall be sent back by the error handler
+        :param status_code: HTTP Status code which shall be sent back by the error handler
         :param optional_data: Any optional data which shall be sent witch the error handler
         """
         super().__init__()
-        self.short_error = short_error
+        self.error_code = error_code
+        self.error_name = error_name
         self.error_description = error_description
-        self.http_status_code = http_status_code
-        self.optional_data = optional_data
+        self.http_code = status_code
 
 
 class ObjectNotFoundException(Exception):
