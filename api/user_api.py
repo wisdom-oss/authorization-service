@@ -28,7 +28,7 @@ user_api.add_event_handler("startup", api.handlers.api_startup)
 @user_api.get(path="/me", response_model=models.responses.UserAccount)
 async def get_account_information(
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["me"]
+        api.dependencies.get_authorized_user, scopes=["account"]
     ),
 ):
     scopes = database.crud.get_user_scopes(user)
@@ -38,7 +38,7 @@ async def get_account_information(
 @user_api.patch(path="/me")
 async def update_account_password(
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["me"]
+        api.dependencies.get_authorized_user, scopes=["account"]
     ),
     old_password: pydantic.SecretStr = fastapi.Body(default=..., embed=True, alias="oldPassword"),
     new_password: pydantic.SecretStr = fastapi.Body(default=..., embed=True, alias="newPassword"),

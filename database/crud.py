@@ -98,6 +98,9 @@ def store_new_user(information: models.requests.AccountCreationInformation):
         active=True,
     )
     database.engine.execute(user_insert_query)
+    user = get_user_account(information.username)
+    scopes = [get_scope(i) for i in information.scopes]
+    set_user_scopes(user, scopes)
 
 
 # %% Operations for the scopes

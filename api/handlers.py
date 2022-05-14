@@ -4,7 +4,7 @@ import sqlalchemy.exc
 
 import exceptions
 import fastapi
-import settings
+import configuration
 
 import database.tables
 
@@ -19,7 +19,7 @@ async def handle_api_error(_: fastapi.requests.Request, exception: exceptions.AP
     content = {
         "httpCode": exception.http_code.value,
         "httpError": exception.http_code.phrase,
-        "error": settings.ServiceSettings().name + f".{exception.error_code}",
+        "error": configuration.ServiceConfiguration().name + f".{exception.error_code}",
         "errorName": exception.error_name,
         "errorDescription": exception.error_description,
     }
@@ -35,7 +35,7 @@ async def handle_integrity_error(
     content = {
         "httpCode": http.HTTPStatus.CONFLICT.value,
         "httpError": http.HTTPStatus.CONFLICT.phrase,
-        "error": settings.ServiceSettings().name + f".DUPLICATE_ENTRY",
+        "error": configuration.ServiceConfiguration().name + f".DUPLICATE_ENTRY",
         "errorName": "Constraint Violation",
         "errorDescription": "The resource you are trying to create already exists",
     }
@@ -48,7 +48,7 @@ def handle_request_validation_error(
     content = {
         "httpCode": http.HTTPStatus.BAD_REQUEST.value,
         "httpError": http.HTTPStatus.BAD_REQUEST.phrase,
-        "error": settings.ServiceSettings().name + f".BAD_REQUEST",
+        "error": configuration.ServiceConfiguration().name + f".BAD_REQUEST",
         "errorName": "Bad Request Parameters",
         "errorDescription": "The request did not contain all necessary parameters to be executed successfully",
     }

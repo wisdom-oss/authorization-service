@@ -23,6 +23,17 @@ scopes = sqlalchemy.Table(
     sqlalchemy.Column("value", sqlalchemy.String(length=255), unique=True),
 )
 
+accounts = sqlalchemy.Table(
+    "accounts",
+    __metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True),
+    sqlalchemy.Column("firstName", sqlalchemy.String(length=255), nullable=False),
+    sqlalchemy.Column("lastName", sqlalchemy.String(length=255), nullable=False),
+    sqlalchemy.Column("username", sqlalchemy.String(length=255), nullable=False, unique=True),
+    sqlalchemy.Column("password", sqlalchemy.Text, nullable=False),
+    sqlalchemy.Column("active", sqlalchemy.Boolean, default=True, nullable=False),
+)
+
 access_token = sqlalchemy.Table(
     "accessTokens",
     __metadata,
@@ -42,17 +53,6 @@ refresh_token = sqlalchemy.Table(
     sqlalchemy.Column("active", sqlalchemy.Boolean, default=True),
     sqlalchemy.Column("expires", sqlalchemy.TIMESTAMP(timezone=True)),
     sqlalchemy.Column("accountID", None, sqlalchemy.ForeignKey("accounts.id", **__fk_options)),
-)
-
-accounts = sqlalchemy.Table(
-    "accounts",
-    __metadata,
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True),
-    sqlalchemy.Column("firstName", sqlalchemy.String(length=255), nullable=False),
-    sqlalchemy.Column("lastName", sqlalchemy.String(length=255), nullable=False),
-    sqlalchemy.Column("username", sqlalchemy.String(length=255), nullable=False, unique=True),
-    sqlalchemy.Column("password", sqlalchemy.Text, nullable=False),
-    sqlalchemy.Column("active", sqlalchemy.Boolean, default=True, nullable=False),
 )
 
 role_scopes = sqlalchemy.Table(

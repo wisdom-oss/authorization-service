@@ -10,7 +10,6 @@ _logger = logging.getLogger(__name__)
 
 # %% API Setup
 service = fastapi.FastAPI()
-service.add_event_handler("startup", handlers.api_startup)
 
 
 # %% API Endpoints

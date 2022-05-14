@@ -1,9 +1,9 @@
-"""Module containing all settings which are used in the application"""
+"""Module containing all configuration which are used in the application"""
 import pydantic
 from pydantic import BaseSettings, AmqpDsn, stricturl, Field
 
 
-class ServiceSettings(BaseSettings):
+class ServiceConfiguration(BaseSettings):
     """Settings related to the general service execution"""
 
     name: str = Field(
@@ -47,13 +47,13 @@ class ServiceSettings(BaseSettings):
     """
 
     class Config:
-        """Configuration of the service settings"""
+        """Configuration of the service configuration"""
 
         env_file = ".env"
-        """Allow loading the values for the service settings from the specified file"""
+        """Allow loading the values for the service configuration from the specified file"""
 
 
-class ServiceRegistrySettings(BaseSettings):
+class ServiceRegistryConfiguration(BaseSettings):
     """Settings related to the connection to the service registry"""
 
     host: str = Field(
@@ -82,13 +82,13 @@ class ServiceRegistrySettings(BaseSettings):
     """
 
     class Config:
-        """Configuration of the service registry settings"""
+        """Configuration of the service registry configuration"""
 
         env_file = ".env"
         """The location of the environment file from which these values may be loaded"""
 
 
-class DatabaseSettings(BaseSettings):
+class DatabaseConfiguration(BaseSettings):
     """Settings related to the connections to the geo-data server"""
 
     dsn: pydantic.PostgresDsn = Field(
@@ -105,7 +105,7 @@ class DatabaseSettings(BaseSettings):
     """
 
     class Config:
-        """Configuration of the AMQP related settings"""
+        """Configuration of the AMQP related configuration"""
 
         env_file = ".env"
-        """The file from which the settings may be read"""
+        """The file from which the configuration may be read"""

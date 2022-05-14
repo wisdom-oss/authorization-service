@@ -49,7 +49,7 @@ async def update_scope_information(
     ),
     scope_update_data: models.requests.ScopeUpdateData = fastapi.Body(...),
 ):
-    if scope_identifier in ["administrator", "me"]:
+    if scope_identifier in ["administration", "account"]:
         raise exceptions.APIException(
             error_code="SCOPE_DEADLOCK",
             error_name="Scope Deadlock Prevented",
@@ -85,7 +85,7 @@ async def delete_scope(
         api.dependencies.get_authorized_user, scopes=["administrator"]
     ),
 ):
-    if scope_identifier in ["administrator", "me"]:
+    if scope_identifier in ["administration", "account"]:
         raise exceptions.APIException(
             error_code="SCOPE_DEADLOCK",
             error_name="Scope Deadlock Prevented",

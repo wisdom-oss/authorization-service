@@ -1,6 +1,6 @@
 SQLAlchemy==1.4.36
 psycopg2-binary
-psycogreen
+argon2_cffi
 pydantic==1.9.0
 passlib==1.7.4
 fastapi[all]==0.75.2

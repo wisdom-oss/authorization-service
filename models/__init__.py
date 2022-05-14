@@ -1,5 +1,5 @@
 """Module containing the data models for validating requests and responses as well as enabling
-the settings"""
+the configuration"""
 import pydantic
 
 # pylint: disable=too-few-public-methods

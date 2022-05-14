@@ -1,14 +1,15 @@
 FROM python:3.10-slim
-# Set some labels
-LABEL de.uol.wisdom-oss.vendor="WISdoM 2.0 Project Group"
-LABEL de.uol.wisdom-oss.maintainer="wisdom@uol.de"
-LABEL de.uol.wisdom-oss.service-name="authorization-service"
+LABEL vendor="WISdoM 2.0 Project Group"
+LABEL maintainer="wisdom@uol.de"
+# Do not change this variable. Use the environment variables in docker compose or while starting to modify this value
+ENV CONFIG_HTTP_PORT=5000
+ENV CONFIG_SERVICE_NAME="authorization-service"
 
-WORKDIR /opt/service
-COPY . /opt/service
-RUN python -m pip install --upgrade pip wheel
-RUN python -m pip install -r /opt/service/requirements.txt
-RUN python -m pip install gunicorn[gevent]
-
-EXPOSE 5000
+WORKDIR /service
+COPY . /service
+RUN python -m pip install -r /service/requirements.txt
+RUN python -m pip install gunicorn
+RUN python -m pip install uvicorn[standard]
+RUN ln ./configuration/gunicorn.py gunicorn.config.py
+EXPOSE $CONFIG_HTTP_PORT
 ENTRYPOINT ["gunicorn", "-cgunicorn.config.py", "api:service"]
