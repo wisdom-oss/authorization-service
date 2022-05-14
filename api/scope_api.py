@@ -5,6 +5,7 @@ import fastapi.requests
 import sqlalchemy.exc
 
 import api.handlers
+import api.dependencies
 import database.crud
 import exceptions
 import models.common
@@ -88,8 +89,8 @@ async def delete_scope(
         raise exceptions.APIException(
             error_code="SCOPE_DEADLOCK",
             error_name="Scope Deadlock Prevented",
-            error_description=f"The '{scope_identifier}' scope may not be deleted, since this will result in a "
-            f"deadlocked authorization service",
+            error_description=f"The requested scope may not be modified or deleted since this will result in locking "
+            f"out everyone from the authorization service",
             status_code=HTTPStatus.FORBIDDEN,
         )
     requested_scope = database.crud.get_scope(scope_identifier)

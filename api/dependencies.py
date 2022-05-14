@@ -40,31 +40,38 @@ def get_authorized_user(
     token_information = database.crud.get_access_token_data(access_token)
     if token_information is None:
         raise exceptions.APIException(
-            error_code="INVALID_CREDENTIALS",
+            error_code="INVALID_TOKEN",
             error_name="Invalid Bearer Token",
             error_description="The request did not contain the correct credentials to allow processing this request",
             status_code=http.HTTPStatus.UNAUTHORIZED,
         )
     if datetime.datetime.now() > token_information.expires:
         raise exceptions.APIException(
-            error_code="INVALID_CREDENTIALS",
-            error_name="Invalid Bearer Token",
+            error_code="EXPIRED_TOKEN",
+            error_name="Expired Bearer Token",
             error_description="The request did not contain a alive Bearer token",
             status_code=http.HTTPStatus.UNAUTHORIZED,
         )
     if datetime.datetime.now() < token_information.created:
         raise exceptions.APIException(
-            error_code="CREDENTIALS_USED_TOO_EARLY",
+            error_code="TOKEN_BEFORE_CREATION",
             error_name="Credentials used too early",
             error_description="The credentials used for this request are currently not valid",
             status_code=http.HTTPStatus.UNAUTHORIZED,
         )
     # Get the information about the user account
     user = database.crud.get_user_account(token_information.owner_id)
+    if user is None:
+        raise exceptions.APIException(
+            error_code="USER_DELETED",
+            error_name="User deleted",
+            error_description="The account used to access this resource was deleted",
+            status_code=http.HTTPStatus.UNAUTHORIZED,
+        )
     if not user.active:
         raise exceptions.APIException(
-            error_code="INACTIVE_USER",
-            error_name="Inactive User",
+            error_code="USER_DISABLED",
+            error_name="User Disabled",
             error_description="The account used to access this resource is currently disabled",
             status_code=http.HTTPStatus.FORBIDDEN,
         )

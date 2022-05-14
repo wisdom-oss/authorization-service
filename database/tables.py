@@ -67,32 +67,48 @@ access_token_scopes = sqlalchemy.Table(
     "accessTokenScopes",
     __metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True),
-    sqlalchemy.Column("tokenID", None, sqlalchemy.ForeignKey("accessTokens.id", **__fk_options)),
-    sqlalchemy.Column("scopeID", None, sqlalchemy.ForeignKey("scopes.id", **__fk_options)),
+    sqlalchemy.Column(
+        "tokenID", sqlalchemy.Integer, sqlalchemy.ForeignKey("accessTokens.id", **__fk_options)
+    ),
+    sqlalchemy.Column(
+        "scopeID", sqlalchemy.Integer, sqlalchemy.ForeignKey("scopes.id", **__fk_options)
+    ),
 )
 
 refresh_token_scopes = sqlalchemy.Table(
     "refreshTokenScopes",
     __metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True),
-    sqlalchemy.Column("tokenID", None, sqlalchemy.ForeignKey("accessTokens.id", **__fk_options)),
-    sqlalchemy.Column("scopeID", None, sqlalchemy.ForeignKey("scopes.id", **__fk_options)),
+    sqlalchemy.Column(
+        "tokenID", sqlalchemy.Integer, sqlalchemy.ForeignKey("accessTokens.id", **__fk_options)
+    ),
+    sqlalchemy.Column(
+        "scopeID", sqlalchemy.Integer, sqlalchemy.ForeignKey("scopes.id", **__fk_options)
+    ),
 )
 
 account_scopes = sqlalchemy.Table(
     "accountScopes",
     __metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True),
-    sqlalchemy.Column("accountID", None, sqlalchemy.ForeignKey("accounts.id", **__fk_options)),
-    sqlalchemy.Column("scopeID", None, sqlalchemy.ForeignKey("scopes.id", **__fk_options)),
+    sqlalchemy.Column(
+        "accountID", sqlalchemy.Integer, sqlalchemy.ForeignKey("accounts.id", **__fk_options)
+    ),
+    sqlalchemy.Column(
+        "scopeID", sqlalchemy.Integer, sqlalchemy.ForeignKey("scopes.id", **__fk_options)
+    ),
 )
 
 account_roles = sqlalchemy.Table(
     "accountRoles",
     __metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True),
-    sqlalchemy.Column("accountID", None, sqlalchemy.ForeignKey("accounts.id", **__fk_options)),
-    sqlalchemy.Column("scopeID", None, sqlalchemy.ForeignKey("roles.id", **__fk_options)),
+    sqlalchemy.Column(
+        "accountID", sqlalchemy.Integer, sqlalchemy.ForeignKey("accounts.id", **__fk_options)
+    ),
+    sqlalchemy.Column(
+        "scopeID", sqlalchemy.Integer, sqlalchemy.ForeignKey("roles.id", **__fk_options)
+    ),
 )
 
 
