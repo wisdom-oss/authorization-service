@@ -1,23 +1,15 @@
-FROM python:3.9
-# Setup some labels for the Image
-LABEL de.uol.wisdom-oss.vendor="Project group WISdoM 2.0"
-LABEL de.uol.wisdom-oss.maintainer="wisdom@uol.de"
-LABEL de.uol.wisdom-oss.service_name="auth-service"
-# Add a user to the service who will execute the code
-RUN addgroup --system auth-service && \
-    adduser --home /opt/auth-service --system --gecos "" auth-service --ingroup auth-service
-# Copy the source code to the image
-COPY . /opt/auth-service
-# Copy the requirements file to the image
-COPY requirements.txt /opt/auth-service
-# Install the requirements
-RUN python -m pip install -r /opt/auth-service/requirements.txt
-RUN python -m pip install uvloop
-# Set the working directory to the service folder
-WORKDIR /opt/auth-service
-# Change to the service user
-USER auth-service
-# Expose the port used by uvicorn
-EXPOSE 5000
-# Set the entrypoint to the service.py
-ENTRYPOINT ["python", "service.py"]
+FROM python:3.10-slim
+LABEL vendor="WISdoM 2.0 Project Group"
+LABEL maintainer="wisdom@uol.de"
+# Do not change this variable. Use the environment variables in docker compose or while starting to modify this value
+ENV CONFIG_HTTP_PORT=5000
+ENV CONFIG_SERVICE_NAME="authorization-service"
+
+WORKDIR /service
+COPY . /service
+RUN python -m pip install -r /service/requirements.txt
+RUN python -m pip install gunicorn
+RUN python -m pip install uvicorn[standard]
+RUN ln ./configuration/gunicorn.py gunicorn.config.py
+EXPOSE $CONFIG_HTTP_PORT
+ENTRYPOINT ["gunicorn", "-cgunicorn.config.py", "api:service"]
