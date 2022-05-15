@@ -3,6 +3,7 @@ import datetime
 import http
 
 import fastapi.security
+import pytz.reference
 from pydantic import SecretStr
 
 import database.crud
@@ -45,14 +46,14 @@ def get_authorized_user(
             error_description="The request did not contain the correct credentials to allow processing this request",
             status_code=http.HTTPStatus.UNAUTHORIZED,
         )
-    if datetime.datetime.now() > token_information.expires:
+    if datetime.datetime.now(tz=pytz.reference.LocalTimezone()) > token_information.expires:
         raise exceptions.APIException(
             error_code="EXPIRED_TOKEN",
             error_name="Expired Bearer Token",
             error_description="The request did not contain a alive Bearer token",
             status_code=http.HTTPStatus.UNAUTHORIZED,
         )
-    if datetime.datetime.now() < token_information.created:
+    if datetime.datetime.now(tz=pytz.reference.LocalTimezone()) < token_information.created:
         raise exceptions.APIException(
             error_code="TOKEN_BEFORE_CREATION",
             error_name="Credentials used too early",

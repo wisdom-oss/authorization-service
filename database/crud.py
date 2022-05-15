@@ -100,6 +100,13 @@ def store_new_user(information: models.requests.AccountCreationInformation):
     database.engine.execute(user_insert_query)
     user = get_user_account(information.username)
     scopes = [get_scope(i) for i in information.scopes]
+    if len(scopes) != len(information.scopes):
+        raise exceptions.APIException(
+            "INVALID_SCOPE_REQUESTED",
+            "Invalid scope requested for new account",
+            "You tried to request a scope which is not in the database",
+            http.HTTPStatus.BAD_REQUEST,
+        )
     set_user_scopes(user, scopes)
 
 

@@ -7,3 +7,4 @@ fastapi[all]~=0.78.0
 py_eureka_client~=0.10.5
 python-dotenv~=0.20.0
 ujson~=5.2.0
+pytz

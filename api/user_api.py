@@ -65,7 +65,7 @@ async def update_account_password(
 async def disable_user(
     account_identification: typing.Union[str, int],
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
 ):
     requested_user = database.crud.get_user_account(account_identification)
@@ -87,7 +87,7 @@ async def disable_user(
 async def disable_user(
     account_identification: typing.Union[str, int],
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
 ):
     requested_user = database.crud.get_user_account(account_identification)
@@ -109,7 +109,7 @@ async def disable_user(
 async def get_user_information(
     account_identification: typing.Union[str, int],
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
 ):
     requested_user = database.crud.get_user_account(account_identification)
@@ -129,7 +129,7 @@ async def update_account_information(
     account_identification: typing.Union[str, int],
     new_account_information: models.requests.AccountUpdateInformation = fastapi.Body(...),
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
 ):
     requested_account = database.crud.get_user_account(account_identification)
@@ -193,7 +193,7 @@ async def update_account_information(
 async def delete_user(
     account_identification: typing.Union[str, int],
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
 ):
     requested_account = database.crud.get_user_account(account_identification)
@@ -211,17 +211,12 @@ async def delete_user(
 @user_api.put(path="/new")
 async def new_user(
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
     new_account_information: models.requests.AccountCreationInformation = fastapi.Body(...),
 ):
     database.crud.store_new_user(new_account_information)
     new_account = database.crud.get_user_account(new_account_information.username)
-    new_account_scopes = [
-        database.crud.get_scope(scope) for scope in new_account_information.scopes
-    ]
-    if len(new_account_scopes) > 0:
-        database.crud.set_user_scopes(new_account, new_account_scopes)
     new_account_scopes = database.crud.get_user_scopes(new_account)
     return models.responses.UserAccount(**new_account.dict(), scopes=new_account_scopes)
 
@@ -229,7 +224,7 @@ async def new_user(
 @user_api.get(path="/")
 async def get_users(
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     )
 ):
     return database.crud.get_user_accounts()

@@ -27,7 +27,7 @@ scope_api.add_event_handler("startup", api.handlers.api_startup)
 async def get_scope_information(
     scope_identifier: typing.Union[str, int],
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
 ):
     requested_scope = database.crud.get_scope(scope_identifier)
@@ -45,7 +45,7 @@ async def get_scope_information(
 async def update_scope_information(
     scope_identifier: typing.Union[str, int],
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
     scope_update_data: models.requests.ScopeUpdateData = fastapi.Body(...),
 ):
@@ -82,7 +82,7 @@ async def update_scope_information(
 async def delete_scope(
     scope_identifier: typing.Union[str, int],
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
 ):
     if scope_identifier in ["administration", "account"]:
@@ -108,7 +108,7 @@ async def delete_scope(
 @scope_api.put(path="/new")
 async def new_scope(
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
     new_scope_data: models.requests.ScopeCreationData = fastapi.Body(...),
 ):
@@ -120,7 +120,7 @@ async def new_scope(
 @scope_api.get(path="/")
 async def get_scopes(
     user: models.common.UserAccount = fastapi.Security(
-        api.dependencies.get_authorized_user, scopes=["administrator"]
+        api.dependencies.get_authorized_user, scopes=["administration"]
     ),
 ):
     return database.crud.get_scopes()
