@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import multiprocessing
 import pathlib
 import sys
 import typing
@@ -21,12 +20,11 @@ _service_settings = configuration.ServiceConfiguration()
 
 # %% Configuration Variables
 bind = f"0.0.0.0:{_service_settings.http_port}"
-workers = multiprocessing.cpu_count() * 2 + 1
+workers = 1
 limit_request_line = 0
 limit_request_fields = 0
 limit_request_field_size = 0
-max_requests = 10
-max_requests_jitter = 10
+max_requests = 0
 timeout = 0
 preload_app = False
 worker_class = "uvicorn.workers.UvicornWorker"
