@@ -1,8 +1,8 @@
 import logging
 import pathlib
 
+import orjson
 import passlib.pwd
-import ujson
 
 import models.requests
 import database
@@ -19,7 +19,7 @@ def create_initial_data(scope_file: pathlib.Path):
     :rtype:
     """
     # Read the scopes the service uses
-    service_scopes: list[dict] = ujson.load(scope_file.open())
+    service_scopes: list[dict] = orjson.loads(scope_file.open().read())
     for service_scope in service_scopes:
         # Create an scope creation object
         scope = models.requests.ScopeCreationData(
