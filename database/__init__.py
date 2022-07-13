@@ -1,14 +1,11 @@
 """Database module used for ORM descriptions of the used tables"""
 import logging
 import sys
-from pathlib import Path
 
-import ujson
 from pydantic import ValidationError
 from sqlalchemy import create_engine
 
 import database.crud
-import models.requests
 from configuration import DatabaseConfiguration
 
 __logger = logging.getLogger("DB")
