@@ -53,41 +53,6 @@ class ServiceConfiguration(BaseSettings):
         """Allow loading the values for the service configuration from the specified file"""
 
 
-class ServiceRegistryConfiguration(BaseSettings):
-    """Settings related to the connection to the service registry"""
-
-    host: str = Field(
-        default=...,
-        title="Service registry host",
-        description="The hostname or ip address of the service registry on which this service "
-        "shall register itself",
-        env="CONFIG_SERVICE_REGISTRY_HOST",
-    )
-    """
-    Service registry host (required)
-
-    The hostname or ip address of the service registry on which this service shall register itself
-    """
-
-    port: int = Field(
-        default=8761,
-        title="Service registry port",
-        description="The port on which the service registry listens on, defaults to 8761",
-        env="CONFIG_SERVICE_REGISTRY_PORT",
-    )
-    """
-    Service registry port
-
-    The port on which the service registry listens on, defaults to 8761
-    """
-
-    class Config:
-        """Configuration of the service registry configuration"""
-
-        env_file = ".env"
-        """The location of the environment file from which these values may be loaded"""
-
-
 class DatabaseConfiguration(BaseSettings):
     """Settings related to the connections to the geo-data server"""
 
@@ -109,3 +74,18 @@ class DatabaseConfiguration(BaseSettings):
 
         env_file = ".env"
         """The file from which the configuration may be read"""
+
+
+class KongGatewayInformation(pydantic.BaseSettings):
+    """Information about the reachability of the API Gateway Admin Endpoints"""
+
+    hostname: str = pydantic.Field(default=..., alias="CONFIG_KONG_HOST", env="CONFIG_KONG_HOST")
+
+    admin_port: int = pydantic.Field(default=8001, alias="CONFIG_KONG_ADMIN_PORT", env="CONFIG_KONG_ADMIN_PORT")
+
+    service_path_slug: str = pydantic.Field(
+        default=..., alias="CONFIG_KONG_SERVICE_SLUG", env="CONFIG_KONG_SERVICE_SLUG"
+    )
+
+    class Config:
+        env_file = ".env"
