@@ -40,6 +40,8 @@ def on_starting(server):
     logging.basicConfig(
         format="[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S %z",
+        level=_service_settings.log_level,
+        force=True,
     )
     # Try to read the configuration for connecting to the service registry
     try:
