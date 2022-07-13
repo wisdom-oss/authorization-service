@@ -10,6 +10,7 @@ import database.tables
 import exceptions
 import models.common
 import models.responses
+import tools
 from api import dependencies, handlers, utilities
 
 # %% API Endpoints
@@ -98,8 +99,12 @@ async def oauth2_token(
             )
         # Since the password matched the hash in the database create a new token set now
         token_set = utilities.generate_token_set(user, scopes=form.scopes)
-        task = starlette.background.BackgroundTask(database.crud.insert_token_set, user=user, token_set=token_set)
-        return fastapi.Response(content=token_set.json(), media_type="application/json", background=task)
+        db_task = starlette.background.BackgroundTask(database.crud.insert_token_set, user=user, token_set=token_set)
+        kong_task = starlette.background.BackgroundTask(
+            tools.store_token_in_gateway, token_set=token_set, username=user.username
+        )
+        tasks = starlette.background.BackgroundTasks([db_task, kong_task])
+        return fastapi.Response(content=token_set.json(), media_type="application/json", background=tasks)
     else:
         raise exceptions.APIException(
             error_code="UNSUPPORTED_GRANT_TYPE",
