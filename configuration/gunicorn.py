@@ -21,7 +21,7 @@ _service_settings = configuration.ServiceConfiguration()
 
 # %% Configuration Variables
 bind = f"0.0.0.0:{_service_settings.http_port}"
-workers = multiprocessing.cpu_count() * 2 + 1
+workers = 1
 limit_request_line = 0
 limit_request_fields = 0
 limit_request_field_size = 0
@@ -45,22 +45,16 @@ def on_starting(server):
     try:
         _registry_settings = configuration.ServiceRegistryConfiguration()
     except pydantic.ValidationError as e:
-        logging.critical(
-            "Unable to read the configuration for connecting to the service registry", exc_info=e
-        )
+        logging.critical("Unable to read the configuration for connecting to the service registry", exc_info=e)
         sys.exit(1)
     # Try to read the configuration for connecting to the database
     try:
         _database_settings = configuration.DatabaseConfiguration()
     except pydantic.ValidationError as e:
-        logging.critical(
-            "Unable to read the configuration for connecting to the database", exc_info=e
-        )
+        logging.critical("Unable to read the configuration for connecting to the database", exc_info=e)
         sys.exit(1)
     # Check the connectivity to the service registry
-    _registry_reachable = asyncio.run(
-        tools.is_host_available(_registry_settings.host, _registry_settings.port)
-    )
+    _registry_reachable = asyncio.run(tools.is_host_available(_registry_settings.host, _registry_settings.port))
     if not _registry_reachable:
         logging.error(
             f"The service registry is currently not reachable on {_registry_settings.host}:"
@@ -100,9 +94,7 @@ def on_starting(server):
         # Get the length of the user database entries
         users = database.crud.get_user_accounts()
         if len(users) == 0:
-            logging.critical(
-                "No user present in the database. The service may not work as expected."
-            )
+            logging.critical("No user present in the database. The service may not work as expected.")
 
 
 def when_ready(server):
