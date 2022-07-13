@@ -167,10 +167,14 @@ async def oauth2_revoke(
                 status_code=http.HTTPStatus.FORBIDDEN,
             )
         else:
-            task = starlette.background.BackgroundTask(
+            db_task = starlette.background.BackgroundTask(
                 database.crud.delete_access_token, token=access_token_information
             )
-            return fastapi.Response(status_code=HTTPStatus.NO_CONTENT, background=task)
+            delete_gateway_token = starlette.background.BackgroundTask(
+                tools.revoke_token_in_gateway, access_token=access_token_information.value.get_secret_value()
+            )
+            tasks = starlette.background.BackgroundTasks([db_task, delete_gateway_token])
+            return fastapi.Response(status_code=HTTPStatus.NO_CONTENT, background=tasks)
     if refresh_token_information is not None:
         if refresh_token_information.owner_id != user.id:
             raise exceptions.APIException(

@@ -62,3 +62,9 @@ def store_token_in_gateway(token_set: models.common.TokenSet, username: str):
         "authenticated_userid": username,
     }
     response = query_kong("/oauth2_tokens", method=enums.HTTPMethod.POST, data=request_data)
+
+
+def revoke_token_in_gateway(access_token: str):
+    gateway_token_request = query_kong("/oauth2_tokens", method=enums.HTTPMethod.GET)
+    token_id = [token["id"] for token in gateway_token_request.json() if token["access_token"] == access_token][0]
+    gateway_token_revokation = query_kong(f"/oauth2_tokens/{token_id}", method=enums.HTTPMethod.DELETE)
