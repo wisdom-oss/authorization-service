@@ -239,7 +239,7 @@ def when_ready(server):
     else:
         _credential_id = [
             credential["id"]
-            for credential in consumer_information_request.json()["data"]
+            for credential in consumer_credential_information_request.json()["data"]
             if credential["consumer"]["id"] == _consumer_id
         ][0]
         credential_file = open("/.credential_id", "wt")
