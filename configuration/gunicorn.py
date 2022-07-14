@@ -170,6 +170,7 @@ def when_ready(server):
         f"/upstreams/upstream_{_service_settings.name}/targets", enums.HTTPMethod.GET
     )
     upstream_target_information = upstream_target_information_request.json()
+    logging.debug("Got following upstream information:\n%s", upstream_target_information)
     container_listed = any(
         [
             target["target"] == f"{ip_address}:{_service_settings.http_port}"
