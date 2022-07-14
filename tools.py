@@ -31,7 +31,7 @@ async def is_host_available(host: str, port: int, timeout: int = 10) -> bool:
     return False
 
 
-def query_kong(path: str, method: enums.HTTPMethod, data: None | dict) -> requests.Response:
+def query_kong(path: str, method: enums.HTTPMethod, data: dict | None = None) -> requests.Response:
     _kong = configuration.KongGatewayInformation()
     match method:
         case enums.HTTPMethod.GET:
