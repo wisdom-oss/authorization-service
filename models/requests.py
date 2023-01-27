@@ -58,5 +58,5 @@ class ScopeCreationData(__BaseModel):
     description: str = pydantic.Field(default=...)
     """The description of the scope"""
 
-    scope_string_value: str = pydantic.Field(default=...)
+    scope_string_value: str = pydantic.Field(default=..., alias="scopeStringValue")
     """The value by which the scope is identifiable in a scope string"""
