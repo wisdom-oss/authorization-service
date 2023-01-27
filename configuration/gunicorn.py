@@ -236,6 +236,9 @@ def when_ready(server):
             credential_file = open("/.credential_id", "wt")
             credential_file.write(consumer_credential_creation_request.json()["id"])
     else:
+        logging.debug(
+        "Received consumer credentials for this service:\n%s",
+                        orjson.dumps(consumer_information_request.json(), option=orjson.OPT_INDENT_2).decode("utf-8"),)
         _credential_id = [
             credential["id"]
             for credential in consumer_information_request.json()["data"]
