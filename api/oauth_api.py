@@ -1,4 +1,5 @@
 import http
+import logging
 from http import HTTPStatus
 
 import fastapi
@@ -129,7 +130,7 @@ async def oauth2_check_token(
         _s = [
                 scope.scope_string_value for scope in database.crud.get_access_token_scopes(access_token_information)
             ]
-        print(_s)
+        logging.error(_s)
         if "administration" in _s:
             scopes = [
                 scope.scope_string_value for scope in database.crud.get_access_token_scopes(access_token_information)
