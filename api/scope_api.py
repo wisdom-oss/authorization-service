@@ -101,6 +101,14 @@ async def new_scope(
     return scope
 
 
+@scope_api.put(path="/__new")
+async def new_scope(
+    new_scope_data: models.requests.ScopeCreationData = fastapi.Body(...),
+):
+    database.crud.store_new_scope(new_scope_data)
+    scope = database.crud.get_scope(new_scope_data.scope_string_value)
+    return scope
+
 @scope_api.get(path="/")
 async def get_scopes(
     user: models.common.UserAccount = fastapi.Security(api.dependencies.get_authorized_user, scopes=["administrator"]),
