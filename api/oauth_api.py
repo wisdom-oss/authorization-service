@@ -129,7 +129,7 @@ async def oauth2_check_token(
         scopes = [
                 scope.scope_string_value for scope in database.crud.get_access_token_scopes(access_token_information)
             ]
-        if "administrator" in scopes:
+        if "administration" in scopes:
             scopes = [
                 scope.scope_string_value for scope in database.crud.get_access_token_scopes(access_token_information)
             ]
