@@ -241,7 +241,7 @@ def when_ready(server):
                         orjson.dumps(consumer_information_request.json(), option=orjson.OPT_INDENT_2).decode("utf-8"),)
         _credential_id = [
             credential["id"]
-            for credential in consumer_information_request.json()["data"]
+            for credential in consumer_credential_information_request.json()["data"]
             if credential["consumer"]["id"] == _consumer_id
         ][0]
         credential_file = open("/.credential_id", "wt")
