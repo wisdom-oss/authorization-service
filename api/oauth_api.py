@@ -126,11 +126,16 @@ async def oauth2_check_token(
     access_token_information = database.crud.get_access_token_data(token)
     refresh_token_information = database.crud.get_refresh_token_data(token)
     if access_token_information is not None and refresh_token_information is None:
+        scopes = [
+                scope.scope_string_value for scope in database.crud.get_access_token_scopes(access_token_information)
+            ]
+        if "administrator" in scopes:
+            scopes = [
+                scope.scope_string_value for scope in database.crud.get_access_token_scopes(access_token_information)
+            ]
         return models.responses.TokenIntrospection(
             active=access_token_information.active,
-            scope=[
-                scope.scope_string_value for scope in database.crud.get_access_token_scopes(access_token_information)
-            ],
+            scope=scopes,
             expires_at=access_token_information.expires.timestamp(),
             created_at=access_token_information.created.timestamp(),
             token_type="access_token",
