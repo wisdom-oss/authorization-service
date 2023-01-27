@@ -8,6 +8,7 @@ import orjson
 import pydantic
 import requests
 import sqlalchemy.schema
+import ujson
 
 import configuration
 import database.crud
@@ -26,7 +27,6 @@ limit_request_line = 0
 limit_request_fields = 0
 limit_request_field_size = 0
 max_requests = 0
-max_requests_jitter = 0
 timeout = 0
 preload_app = False
 worker_class = "uvicorn.workers.UvicornWorker"
@@ -170,7 +170,6 @@ def when_ready(server):
         f"/upstreams/upstream_{_service_settings.name}/targets", enums.HTTPMethod.GET
     )
     upstream_target_information = upstream_target_information_request.json()
-    logging.debug("Got following upstream information:\n%s", upstream_target_information)
     container_listed = any(
         [
             target["target"] == f"{ip_address}:{_service_settings.http_port}"
@@ -240,7 +239,7 @@ def when_ready(server):
     else:
         _credential_id = [
             credential["id"]
-            for credential in consumer_credential_information_request.json()["data"]
+            for credential in consumer_information_request.json()["data"]
             if credential["consumer"]["id"] == _consumer_id
         ][0]
         credential_file = open("/.credential_id", "wt")
