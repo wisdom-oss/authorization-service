@@ -8,7 +8,6 @@ import orjson
 import pydantic
 import requests
 import sqlalchemy.schema
-import ujson
 
 import configuration
 import database.crud
