@@ -105,9 +105,13 @@ async def new_scope(
 async def new_scope(
     new_scope_data: models.requests.ScopeCreationData = fastapi.Body(...),
 ):
-    database.crud.store_new_scope(new_scope_data)
+    s = database.crud.get_scope(new_scope_data.scope_string_value)
+    if s is None:
+        database.crud.store_new_scope(new_scope_data)
+
     scope = database.crud.get_scope(new_scope_data.scope_string_value)
     return scope
+
 
 @scope_api.get(path="/")
 async def get_scopes(
